@@ -5,9 +5,27 @@ from watchtower.alert.consumers import AbstractConsumer
 
 class LogConsumer(AbstractConsumer):
 
+    loggers = {
+        'normal': logging.info,
+        'warning': logging.warn,
+        'critical': logging.error,
+    }
+
     def handle_alert(self, alert):
-        logging.debug("This is an alert")
+        log_str = "ALERT: %s %s %d (%s)" %\
+                  (alert.level.upper(), alert.name, alert.time,
+                   alert.expression)
+        self.loggers[alert.level](log_str)
+
+        for v in alert.violations:
+            log_str = "VIOLATION: %s Time: %d %s Value: %d History Value: %d History: %s" %\
+                      (alert.level.upper(), alert.time, v.expression, v.value,
+                       v.history_value, v.history)
+            self.loggers[alert.level](log_str)
 
     def handle_error(self, error):
-        logging.debug("This is an error")
+        log_str = "ERROR: %s %s %d %s %s" % (error.type, error.name,
+                                             error.time, error.expression,
+                                             error.message)
+        logging.error(log_str)
 

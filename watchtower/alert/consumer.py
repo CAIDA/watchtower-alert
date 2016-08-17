@@ -61,7 +61,7 @@ class Consumer:
 
     def _configure_logging(self):
         logging.basicConfig(level=self.config.get('logging', 'info'),
-                            format='%(asctime)s|CONSUMER|%(levelname)s: %(message)s',
+                            format='%(asctime)s|WATCHTOWER|%(levelname)s: %(message)s',
                             datefmt='%Y-%m-%d %H:%M:%S')
 
     def _topic(self, name):
@@ -77,13 +77,13 @@ class Consumer:
                 consumer_config = self.config['consumers'][consumer] if consumer in self.config['consumers'] else None
                 self.consumers[level].append(self.consumer_classes[consumer](consumer_config))
 
-    def _handle_alert(self, msg):
-        for consumer in self.consumers[msg['level']]:
-            consumer.handle_alert(msg)
+    def _handle_alert(self, alert):
+        for consumer in self.consumers[alert.level]:
+            consumer.handle_alert(alert)
 
-    def _handle_error(self, msg):
+    def _handle_error(self, alert):
         for consumer in self.consumers['error']:
-            consumer.handle_error(msg)
+            consumer.handle_error(alert)
 
     def run(self):
         # loop forever consuming alerts

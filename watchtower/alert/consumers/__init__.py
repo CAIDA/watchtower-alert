@@ -16,8 +16,9 @@ class AbstractConsumer:
         pass
 
 
-# When adding a consumer here, also add to the consumer_classes dict in
+# When adding a consumer here, also add to _init_plugins method in
 # watchtower.alert.consumer.py
+# TODO: make adding consumer more dynamic
 from watchtower.alert.consumers.log import LogConsumer
 # from watchtower.alert.consumers.email import EmailConsumer
 # from watchtower.alert.consumers.database import DatabaseConsumer
