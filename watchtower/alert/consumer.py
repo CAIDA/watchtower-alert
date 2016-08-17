@@ -4,12 +4,11 @@ import logging
 import os
 import pykafka
 
+import watchtower.alert  # Alert, Error, Violation
 import watchtower.alert.consumers
 
 
 class Consumer:
-
-    levels = ['critical', 'warning', 'normal', 'error']
 
     defaults = {
         "logging": "INFO",
@@ -27,16 +26,13 @@ class Consumer:
         "consumers": {},
     }
 
-    consumer_classes = {
-        "log": watchtower.alert.consumers.LogConsumer,
-        # "email": watchtower.alert.consumers.EmailConsumer,
-        # "database": watchtower.alert.consumers.DatabaseConsumer
-    }
-
     def __init__(self, config_file):
         self.config_file = os.path.expanduser(config_file)
         self.config = dict(self.defaults)
         self._load_config()
+
+        self.consumer_classes = None
+        self._init_plugins()
 
         self._init_consumers()
 
@@ -49,6 +45,13 @@ class Consumer:
         self.error_consumer =\
             self._topic(self.config['error_topic'])\
                 .get_simple_consumer(consumer_timeout_ms=5000)
+
+    def _init_plugins(self):
+        self.consumer_classes = {
+            "log": watchtower.alert.consumers.LogConsumer,
+            # "email": watchtower.alert.consumers.EmailConsumer,
+            # "database": watchtower.alert.consumers.DatabaseConsumer
+        }
 
     def _load_config(self):
         with open(self.config_file) as fconfig:
@@ -67,7 +70,7 @@ class Consumer:
 
     def _init_consumers(self):
         self.consumers = {}
-        for level in self.levels:
+        for level in watchtower.alert.Alert.LEVELS:
             cfg = self.config[level+'_consumers']
             self.consumers[level] = []
             for consumer in cfg:
@@ -87,10 +90,10 @@ class Consumer:
         while True:
             for msg in self.alert_consumer:
                 if msg is not None:
-                    self._handle_alert(json.loads(msg.value))
+                    self._handle_alert(watchtower.alert.Alert.from_json(msg.value))
             for msg in self.error_consumer:
                 if msg is not None:
-                    self._handle_error(json.loads(msg.value))
+                    self._handle_error(watchtower.alert.Error.from_json(msg.value))
 
 
 def main():
