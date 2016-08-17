@@ -90,8 +90,8 @@ class Alert:
 
 class Violation:
 
-    def __init__(self, target, condition, value, history_value, history):
-        self.target = target
+    def __init__(self, expression, condition, value, history_value, history):
+        self.expression = expression
         self.condition = condition
         self.value = value
         self.history_value = history_value
@@ -102,7 +102,7 @@ class Violation:
 
     def as_dict(self):
         return {
-            'target': self.target,
+            'expression': self.expression,
             'condition': self.condition,
             'value': self.value,
             'history_value': self.history_value,
@@ -110,12 +110,12 @@ class Violation:
         }
 
     @property
-    def target(self):
-        return self.target
+    def expression(self):
+        return self.expression
 
-    @target.setter
-    def target(self, v):
-        self.target = v
+    @expression.setter
+    def expression(self, v):
+        self.expression = v
         
     @property
     def condition(self):
@@ -154,9 +154,9 @@ class Violation:
 
 class Error:
 
-    def __init__(self, name, error_type, time, expression, message):
+    def __init__(self, name, type, time, expression, message):
         self.name = name
-        self.type = error_type
+        self.type = type
         self.time = time
         self.expression = expression
         self.message = message
