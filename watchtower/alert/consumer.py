@@ -31,9 +31,10 @@ class Consumer:
         self.config = dict(self.defaults)
         self._load_config()
 
-        self.consumer_classes = None
+        self.consumer_instances = None
         self._init_plugins()
 
+        self.consumers = None
         self._init_consumers()
 
         # connect to kafka
@@ -47,11 +48,16 @@ class Consumer:
                 .get_simple_consumer(consumer_timeout_ms=5000)
 
     def _init_plugins(self):
-        self.consumer_classes = {
+        consumers = {
             "log": watchtower.alert.consumers.LogConsumer,
             # "email": watchtower.alert.consumers.EmailConsumer,
             # "database": watchtower.alert.consumers.DatabaseConsumer
         }
+        self.consumer_instances = {}
+        for consumer, clz in consumers.iteritems():
+            cfg = self.config['consumers'][consumer] \
+                if consumer in self.config['consumers'] else None
+            self.consumer_instances[consumer] = clz(cfg)
 
     def _load_config(self):
         with open(self.config_file) as fconfig:
@@ -74,8 +80,7 @@ class Consumer:
             cfg = self.config[level+'_consumers']
             self.consumers[level] = []
             for consumer in cfg:
-                consumer_config = self.config['consumers'][consumer] if consumer in self.config['consumers'] else None
-                self.consumers[level].append(self.consumer_classes[consumer](consumer_config))
+                self.consumers[level].append(self.consumer_instances[consumer])
 
     def _handle_alert(self, alert):
         for consumer in self.consumers[alert.level]:
