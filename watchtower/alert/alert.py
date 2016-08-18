@@ -5,11 +5,13 @@ class Alert:
 
     LEVELS = ['critical', 'warning', 'normal', 'error']
 
-    def __init__(self, name, level, time, expression, method, violations=None):
+    def __init__(self, name, level, time, expression, history_expression,
+                 method, violations=None):
         self.name = name
         self.level = level
         self.time = time
         self.expression = expression
+        self.history_expression = history_expression
         self.method = method
         self.violations = violations
 
@@ -29,6 +31,7 @@ class Alert:
             'level': self.level,
             'time': self.time,
             'expression': self.expression,
+            'history_expression': self.history_expression,
             'method': self.method,
             'violations': [v.as_dict() for v in self.violations],
         }
@@ -68,6 +71,14 @@ class Alert:
     @expression.setter
     def expression(self, v):
         self.expression = v
+
+    @property
+    def history_expression(self):
+        return self.history_expression
+
+    @history_expression.setter
+    def history_expression(self, v):
+        self.history_expression = v
 
     @property
     def method(self):
@@ -154,11 +165,12 @@ class Violation:
 
 class Error:
 
-    def __init__(self, name, type, time, expression, message):
+    def __init__(self, name, type, time, expression, history_expression, message):
         self.name = name
         self.type = type
         self.time = time
         self.expression = expression
+        self.history_expression = history_expression
         self.message = message
 
     def __repr__(self):
@@ -170,6 +182,7 @@ class Error:
             'type': self.type,
             'time': self.time,
             'expression': self.expression,
+            'history_expression': self.history_expression,
             'message': self.message,
         }
 
@@ -211,6 +224,14 @@ class Error:
     @expression.setter
     def expression(self, v):
         self.expression = v
+
+    @property
+    def history_expression(self):
+        return self.history_expression
+
+    @history_expression.setter
+    def history_expression(self, v):
+        self.history_expression = v
         
     @property
     def message(self):
