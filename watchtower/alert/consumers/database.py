@@ -22,8 +22,9 @@ class DatabaseConsumer(AbstractConsumer):
     }
 
     def __init__(self, config):
-        super(DatabaseConsumer, self).__init__(config)
-        self.config = self.defaults.update(self.config) if self.config else self.defaults
+        super(DatabaseConsumer, self).__init__(self.defaults)
+        if config:
+            self.config.update(config)
 
         self._init_db()
 
