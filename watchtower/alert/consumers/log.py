@@ -18,7 +18,7 @@ class LogConsumer(AbstractConsumer):
         self.loggers[alert.level](log_str)
 
         for v in alert.violations:
-            log_str = "VIOLATION: %s Time: %d %s Value: %d History Value: %d History: %s" %\
+            log_str = "VIOLATION: %s Time: %d %s Value: %s History Value: %s History: %s" %\
                       (alert.level.upper(), alert.time, v.expression, v.value,
                        v.history_value, v.history)
             self.loggers[alert.level](log_str)
