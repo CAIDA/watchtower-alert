@@ -1,4 +1,5 @@
 import logging
+import requests
 import sqlalchemy
 import sqlalchemy.engine.url
 
@@ -6,6 +7,8 @@ from watchtower.alert.consumers import AbstractConsumer
 
 
 class DatabaseConsumer(AbstractConsumer):
+
+    CH_META_API = "https://charthouse-test.caida.org/data/meta/annotate"
 
     defaults = {
         'drivername': 'sqlite',
@@ -15,10 +18,11 @@ class DatabaseConsumer(AbstractConsumer):
         'port': None,
         'databasename': None,
         'engine_params': {},
-        'table_prefix': None,
-        'alert_table_name': 'watchtower_alert',
-        'violation_table_name': 'watchtower_violation',
-        'error_table_name': 'watchtower_error',
+        'table_prefix': 'watchtower',
+        'alert_table_name': 'alert',
+        'violation_table_name': 'violation',
+        'violation_meta_table_name': 'violation_meta',
+        'error_table_name': 'error',
     }
 
     def __init__(self, config):
@@ -60,7 +64,18 @@ class DatabaseConsumer(AbstractConsumer):
             sqlalchemy.Column('history_value', sqlalchemy.Float),
             sqlalchemy.Column('history', sqlalchemy.String),
             sqlalchemy.Column('alert_id', sqlalchemy.Integer,
-                              sqlalchemy.ForeignKey(self.t_alert.c.id)))
+                              sqlalchemy.ForeignKey(self.t_alert.c.id))
+        )
+
+        self.t_violation_meta = sqlalchemy.Table(
+            self._table_name('violation_meta'),
+            meta,
+            sqlalchemy.Column('violation_id', sqlalchemy.Integer,
+                              sqlalchemy.ForeignKey(self.t_violation.c.id)),
+            sqlalchemy.Column('type', sqlalchemy.String, nullable=False),
+            sqlalchemy.Column('val', sqlalchemy.String, nullable=False),
+            sqlalchemy.UniqueConstraint('violation_id', 'type')
+        )
 
         self.t_error = sqlalchemy.Table(
             self._table_name('error'),
@@ -103,21 +118,67 @@ class DatabaseConsumer(AbstractConsumer):
         with self.engine.connect() as conn:
             adict = alert.as_dict()
             violdict = adict.pop('violations')
+
             # dirty hax below. should do a select first
             try:
                 ins = self.t_alert.insert().values(adict)
                 res = conn.execute(ins)
                 [alert_id] = res.inserted_primary_key
                 self._insert_violations(alert_id, violdict)
+
             except sqlalchemy.exc.IntegrityError:
                 logging.warn("Alert insert failed (maybe it already exists?)")
 
-    def _insert_violations(self, alert_id, violations):
-        for v in violations:
+    def _insert_violations(self, alert_id, vdicts):
+        metas = self._lookup_meta(vdicts)
+        for v in vdicts:
             v['alert_id'] = alert_id
             v['history'] = str(v['history'])
+            with self.engine.connect() as conn:
+                ins = self.t_violation.insert().values(v)
+                res = conn.execute(ins)
+                [viol_id] = res.inserted_primary_key
+                self._insert_violation_meta(viol_id, metas[v['expression']])
+
+    def _lookup_meta(self, vdicts):
+        # build a list of all expressions to query for
+        expressions = [v['expression'] for v in vdicts]
+        resp = requests.post(self.CH_META_API, {'expression[]': expressions})
+        res = resp.json()
+        if 'data' not in res:
+            return []
+        metas = {}
+        for expression in expressions:
+            metas[expression] = []
+            if expression not in res['data']:
+                continue
+            for ann in res['data'][expression]['annotations']:
+                if ann['type'] != 'meta':
+                    continue
+                if ann['attributes']['type'] == 'geo':
+                    metas[expression].append(self._parse_geo_ann(ann))
+                elif ann['attributes']['type'] == 'asn':
+                    metas[expression].append({
+                        'type': 'asn',
+                        'val': ann['attributes']['asn']
+                    })
+        return metas
+
+    @staticmethod
+    def _parse_geo_ann(ann):
+        type = ann['attributes']['nativeLevel']
+        return {
+            'type': type,
+            'val': ann['attributes'][type]['id']
+        }
+
+    def _insert_violation_meta(self, viol_id, metas):
+        if not metas or not len(metas):
+            return
+        for meta in metas:
+            meta.update({'violation_id': viol_id})
         with self.engine.connect() as conn:
-            ins = self.t_violation.insert().values(violations)
+            ins = self.t_violation_meta.insert().values(metas)
             conn.execute(ins)
 
     def handle_error(self, error):

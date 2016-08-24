@@ -52,7 +52,7 @@ class Consumer:
             "log": watchtower.alert.consumers.LogConsumer,
             # "email": watchtower.alert.consumers.EmailConsumer,
             "database": watchtower.alert.consumers.DatabaseConsumer,
-            "traceroute": watchtower.alert.consumers.TracerouteConsumer,
+            # "traceroute": watchtower.alert.consumers.TracerouteConsumer,
         }
         self.consumer_instances = {}
         for consumer, clz in consumers.iteritems():
