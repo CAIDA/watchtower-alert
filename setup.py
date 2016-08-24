@@ -15,4 +15,4 @@ setup(name='watchtower.alert',
           'watchtower-alert-consumer=watchtower.alert.consumer:main'
       ]},
       install_requires=['pykafka', 'python-snappy', 'sqlalchemy', 'psycopg2',
-                        'requests'])
+                        'requests', 'pytimeseries'])

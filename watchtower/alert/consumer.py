@@ -53,6 +53,7 @@ class Consumer:
             # "email": watchtower.alert.consumers.EmailConsumer,
             "database": watchtower.alert.consumers.DatabaseConsumer,
             # "traceroute": watchtower.alert.consumers.TracerouteConsumer,
+            "timeseries": watchtower.alert.consumers.TimeseriesConsumer,
         }
         self.consumer_instances = {}
         for consumer, clz in consumers.iteritems():

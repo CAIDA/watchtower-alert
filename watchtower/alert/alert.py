@@ -48,8 +48,9 @@ class Alert:
         # do a batch lookup for efficiency
         resp = requests.post(self.CH_META_API, {'expression[]': expressions})
         res = resp.json()
-        if 'data' not in res:
-            return []
+        if not res or 'data' not in res or not res['data']:
+            raise RuntimeError('Charthouse annotation failed with error: %s' %
+                               res['error'] if res else None)
         # build a mapping from v.expression to metas
         metas = {}
         for expression in expressions:
@@ -64,6 +65,7 @@ class Alert:
                 elif ann['attributes']['type'] == 'asn':
                     metas[expression].append({
                         'type': 'asn',
+                        'fqid': ann['attributes']['fqid'],
                         'val': ann['attributes']['asn']
                     })
         # now assign meta to each violation
@@ -76,6 +78,7 @@ class Alert:
         type = ann['attributes']['nativeLevel']
         return {
             'type': type,
+            'fqid': ann['attributes']['fqid'],
             'val': ann['attributes'][type]['id']
         }
 

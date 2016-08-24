@@ -23,3 +23,4 @@ from watchtower.alert.consumers.log import LogConsumer
 # from watchtower.alert.consumers.email import EmailConsumer
 from watchtower.alert.consumers.database import DatabaseConsumer
 # from watchtower.alert.consumers.traceroute import TracerouteConsumer
+from watchtower.alert.consumers.timeseries import TimeseriesConsumer
