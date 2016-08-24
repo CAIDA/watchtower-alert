@@ -1,8 +1,10 @@
 import json
+import requests
 
 
 class Alert:
 
+    CH_META_API = "https://charthouse.caida.org/data/meta/annotate"
     LEVELS = ['critical', 'warning', 'normal', 'error']
 
     def __init__(self, name, level, time, expression, history_expression,
@@ -14,6 +16,8 @@ class Alert:
         self.history_expression = history_expression
         self.method = method
         self.violations = violations
+
+        self.violations_annotated = False
 
     def __repr__(self):
         return json.dumps(self.as_dict())
@@ -34,6 +38,45 @@ class Alert:
             'history_expression': self.history_expression,
             'method': self.method,
             'violations': [v.as_dict() for v in self.violations],
+        }
+
+    def annotate_violations(self):
+        if self.violations_annotated:
+            return
+        # collect all the expressions from violations
+        expressions = [v.expression for v in self.violations]
+        # do a batch lookup for efficiency
+        resp = requests.post(self.CH_META_API, {'expression[]': expressions})
+        res = resp.json()
+        if 'data' not in res:
+            return []
+        # build a mapping from v.expression to metas
+        metas = {}
+        for expression in expressions:
+            metas[expression] = []
+            if expression not in res['data']:
+                continue
+            for ann in res['data'][expression]['annotations']:
+                if ann['type'] != 'meta':
+                    continue
+                if ann['attributes']['type'] == 'geo':
+                    metas[expression].append(self._parse_geo_ann(ann))
+                elif ann['attributes']['type'] == 'asn':
+                    metas[expression].append({
+                        'type': 'asn',
+                        'val': ann['attributes']['asn']
+                    })
+        # now assign meta to each violation
+        for v in self.violations:
+            v.meta = metas[v.expression]
+        self.violations_annotated = True
+
+    @staticmethod
+    def _parse_geo_ann(ann):
+        type = ann['attributes']['nativeLevel']
+        return {
+            'type': type,
+            'val': ann['attributes'][type]['id']
         }
 
     @property
@@ -107,6 +150,7 @@ class Violation:
         self.value = value
         self.history_value = history_value
         self.history = history
+        self.meta = None
 
     def __repr__(self):
         return json.dumps(self.as_dict())
@@ -118,6 +162,7 @@ class Violation:
             'value': self.value,
             'history_value': self.history_value,
             'history': self.history,
+            'meta': self.meta,
         }
 
     @property
@@ -161,6 +206,14 @@ class Violation:
         if not isinstance(v, list):
             raise TypeError('Violation history must be a list')
         self.history = v
+
+    @property
+    def meta(self):
+        return self.meta
+
+    @meta.setter
+    def meta(self, meta):
+        self.meta = meta
 
 
 class Error:

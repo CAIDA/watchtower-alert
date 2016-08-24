@@ -1,5 +1,4 @@
 import logging
-import requests
 import sqlalchemy
 import sqlalchemy.engine.url
 
@@ -7,8 +6,6 @@ from watchtower.alert.consumers import AbstractConsumer
 
 
 class DatabaseConsumer(AbstractConsumer):
-
-    CH_META_API = "https://charthouse-test.caida.org/data/meta/annotate"
 
     defaults = {
         'drivername': 'sqlite',
@@ -115,6 +112,8 @@ class DatabaseConsumer(AbstractConsumer):
 
     def handle_alert(self, alert):
         logging.debug("DB consumer handling alert")
+        # we need violation annotations, so ensure that has been done
+        alert.annotate_violations()
         with self.engine.connect() as conn:
             adict = alert.as_dict()
             violdict = adict.pop('violations')
@@ -130,47 +129,15 @@ class DatabaseConsumer(AbstractConsumer):
                 logging.warn("Alert insert failed (maybe it already exists?)")
 
     def _insert_violations(self, alert_id, vdicts):
-        metas = self._lookup_meta(vdicts)
         for v in vdicts:
             v['alert_id'] = alert_id
             v['history'] = str(v['history'])
+            metas = v.pop('meta')
             with self.engine.connect() as conn:
                 ins = self.t_violation.insert().values(v)
                 res = conn.execute(ins)
                 [viol_id] = res.inserted_primary_key
-                self._insert_violation_meta(viol_id, metas[v['expression']])
-
-    def _lookup_meta(self, vdicts):
-        # build a list of all expressions to query for
-        expressions = [v['expression'] for v in vdicts]
-        resp = requests.post(self.CH_META_API, {'expression[]': expressions})
-        res = resp.json()
-        if 'data' not in res:
-            return []
-        metas = {}
-        for expression in expressions:
-            metas[expression] = []
-            if expression not in res['data']:
-                continue
-            for ann in res['data'][expression]['annotations']:
-                if ann['type'] != 'meta':
-                    continue
-                if ann['attributes']['type'] == 'geo':
-                    metas[expression].append(self._parse_geo_ann(ann))
-                elif ann['attributes']['type'] == 'asn':
-                    metas[expression].append({
-                        'type': 'asn',
-                        'val': ann['attributes']['asn']
-                    })
-        return metas
-
-    @staticmethod
-    def _parse_geo_ann(ann):
-        type = ann['attributes']['nativeLevel']
-        return {
-            'type': type,
-            'val': ann['attributes'][type]['id']
-        }
+                self._insert_violation_meta(viol_id, metas)
 
     def _insert_violation_meta(self, viol_id, metas):
         if not metas or not len(metas):
