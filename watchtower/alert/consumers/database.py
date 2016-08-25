@@ -38,13 +38,15 @@ class DatabaseConsumer(AbstractConsumer):
             sqlalchemy.Column('id', sqlalchemy.Integer,
                               sqlalchemy.Sequence('watchtower_alert_id_seq'),
                               primary_key=True),
+            sqlalchemy.Column('fqid', sqlalchemy.String, nullable=False),
             sqlalchemy.Column('name', sqlalchemy.String, nullable=False),
             sqlalchemy.Column('time', sqlalchemy.Integer, nullable=False),
             sqlalchemy.Column('level', sqlalchemy.String, nullable=False),
             sqlalchemy.Column('method', sqlalchemy.String, nullable=False),
             sqlalchemy.Column('expression', sqlalchemy.String, nullable=False),
-            sqlalchemy.Column('history_expression', sqlalchemy.String, nullable=False),
-            sqlalchemy.UniqueConstraint('name', 'time', 'level', 'expression')
+            sqlalchemy.Column('history_expression', sqlalchemy.String,
+                              nullable=False),
+            sqlalchemy.UniqueConstraint('fqid', 'time', 'level', 'expression')
         )
 
         # Violations are all occurences of rule violations grouped by level
@@ -69,6 +71,7 @@ class DatabaseConsumer(AbstractConsumer):
             meta,
             sqlalchemy.Column('violation_id', sqlalchemy.Integer,
                               sqlalchemy.ForeignKey(self.t_violation.c.id)),
+            sqlalchemy.Column('fqid', sqlalchemy.String, nullable=False),
             sqlalchemy.Column('type', sqlalchemy.String, nullable=False),
             sqlalchemy.Column('val', sqlalchemy.String, nullable=False),
             sqlalchemy.UniqueConstraint('violation_id', 'type')
@@ -80,13 +83,14 @@ class DatabaseConsumer(AbstractConsumer):
             sqlalchemy.Column('id', sqlalchemy.Integer,
                               sqlalchemy.Sequence('watchtower_error_id_seq'),
                               primary_key=True),
+            sqlalchemy.Column('fqid', sqlalchemy.String, nullable=False),
             sqlalchemy.Column('name', sqlalchemy.String, nullable=False),
             sqlalchemy.Column('time', sqlalchemy.Integer, nullable=False),
             sqlalchemy.Column('expression', sqlalchemy.String, nullable=False),
             sqlalchemy.Column('history_expression', sqlalchemy.String, nullable=False),
             sqlalchemy.Column('type', sqlalchemy.String, nullable=False),
             sqlalchemy.Column('message', sqlalchemy.String, nullable=False),
-            sqlalchemy.UniqueConstraint('name', 'time', 'expression', 'type',
+            sqlalchemy.UniqueConstraint('fqid', 'time', 'expression', 'type',
                                         'message')
         )
 

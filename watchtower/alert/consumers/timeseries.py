@@ -72,12 +72,11 @@ class TimeseriesConsumer(AbstractConsumer):
             state['kp'].set(idx, self.level_values[alert.level])
 
     def _build_key(self, alert, violation):
-        # "projects.ioda.alerts.[ALERT-NAME].[META-FQID].alert_level
+        # "projects.ioda.alerts.[ALERT-FQID].[META-FQID].alert_level
         return '.'\
-            .join((self.config['metric_prefix'], alert.name,
+            .join((self.config['metric_prefix'], alert.fqid,
                    violation.meta[0]['fqid'],
-                   self.config['level_leaf']))\
-            .replace(' ', '-').replace('/', 'slash').replace('(', '').replace(')', '')  # hax for now
+                   self.config['level_leaf']))
 
     def _maybe_flush_kp(self, state, time):
         this_int_start = self.compute_interval_start(time)

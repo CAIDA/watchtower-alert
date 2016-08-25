@@ -7,8 +7,9 @@ class Alert:
     CH_META_API = "https://charthouse.caida.org/data/meta/annotate"
     LEVELS = ['critical', 'warning', 'normal', 'error']
 
-    def __init__(self, name, level, time, expression, history_expression,
+    def __init__(self, fqid, name, level, time, expression, history_expression,
                  method, violations=None):
+        self.fqid = fqid
         self.name = name
         self.level = level
         self.time = time
@@ -31,6 +32,7 @@ class Alert:
 
     def as_dict(self):
         return {
+            'fqid': self.fqid,
             'name': self.name,
             'level': self.level,
             'time': self.time,
@@ -81,6 +83,14 @@ class Alert:
             'fqid': ann['attributes']['fqid'],
             'val': ann['attributes'][type]['id']
         }
+
+    @property
+    def fqid(self):
+        return self.fqid
+
+    @fqid.setter
+    def fqid(self, v):
+        self.fqid = v
 
     @property
     def name(self):
