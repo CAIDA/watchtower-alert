@@ -147,13 +147,14 @@ class Alert:
 
 class Violation:
 
-    def __init__(self, expression, condition, value, history_value, history):
+    def __init__(self, expression, condition, value, history_value, history,
+                 meta=None):
         self.expression = expression
         self.condition = condition
         self.value = value
         self.history_value = history_value
         self.history = history
-        self.meta = None
+        self.meta = meta
 
     def __repr__(self):
         return json.dumps(self.as_dict())
