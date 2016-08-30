@@ -84,8 +84,12 @@ class TimeseriesConsumer(AbstractConsumer):
             raise RuntimeError('Time is going backward! Time: %d Last Time: %d'
                                % (time, state['last_time']))
         state['last_time'] = time
-        if not state['int_start'] or this_int_start <= state['int_start']:
+        if not state['int_start']:
             state['int_start'] = this_int_start
+            return
+        if this_int_start <= state['int_start']:
+            # current interval. flush anyway to get partial results
+            state['kp'].flush(state['int_start'])
             return
 
         while state['int_start'] < this_int_start:
