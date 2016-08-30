@@ -74,7 +74,7 @@ class DatabaseConsumer(AbstractConsumer):
             sqlalchemy.Column('fqid', sqlalchemy.String, nullable=False),
             sqlalchemy.Column('type', sqlalchemy.String, nullable=False),
             sqlalchemy.Column('val', sqlalchemy.String, nullable=False),
-            sqlalchemy.UniqueConstraint('violation_id', 'type')
+            sqlalchemy.PrimaryKeyConstraint('violation_id', 'type')
         )
 
         self.t_error = sqlalchemy.Table(
