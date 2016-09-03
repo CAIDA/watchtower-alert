@@ -232,7 +232,8 @@ class Violation:
 
 class Error:
 
-    def __init__(self, name, type, time, expression, history_expression, message):
+    def __init__(self, fqid, name, type, time, expression, history_expression, message):
+        self.fqid = fqid
         self.name = name
         self.type = type
         self.time = time
@@ -245,6 +246,7 @@ class Error:
 
     def as_dict(self):
         return {
+            'fqid': self.fqid,
             'name': self.name,
             'type': self.type,
             'time': self.time,
@@ -257,6 +259,14 @@ class Error:
     def from_json(cls, json_str):
         obj = json.loads(json_str)
         return Error(**obj)
+
+    @property
+    def fqid(self):
+        return self.fqid
+
+    @fqid.setter
+    def fqid(self, v):
+        self.fqid = v
 
     @property
     def name(self):
