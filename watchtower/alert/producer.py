@@ -18,7 +18,8 @@ class Producer:
 
     def _connect_topic(self, topic_name):
         full_name = "%s-%s" % (self.topic_prefix, topic_name)
-        return self.kc.topics[full_name.encode("ascii")].get_sync_producer()
+        return self.kc.topics[full_name.encode("ascii")]\
+            .get_producer(use_rdkafka=True)
 
     def produce_alert(self, alert):
         self.alert_t.produce(repr(alert))
