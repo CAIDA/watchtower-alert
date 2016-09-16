@@ -42,10 +42,12 @@ class Consumer:
         # set up our consumers
         self.alert_consumer =\
             self._topic(self.config['alert_topic'])\
-                .get_simple_consumer(consumer_timeout_ms=5000)
+                .get_simple_consumer(consumer_timeout_ms=5000,
+                                     use_rdkafka=True)
         self.error_consumer =\
             self._topic(self.config['error_topic'])\
-                .get_simple_consumer(consumer_timeout_ms=5000)
+                .get_simple_consumer(consumer_timeout_ms=5000,
+                                     use_rdkafka=True)
 
     def _init_plugins(self):
         consumers = {
