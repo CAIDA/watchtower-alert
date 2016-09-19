@@ -15,6 +15,9 @@ class AbstractConsumer:
     def handle_error(self, error):
         pass
 
+    @abc.abstractmethod
+    def handle_timer(self, now):
+        pass
 
 # When adding a consumer here, also add to _init_plugins method in
 # watchtower.alert.consumer.py

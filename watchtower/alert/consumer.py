@@ -3,6 +3,7 @@ import json
 import logging
 import os
 import pykafka
+import time
 
 import watchtower.alert  # Alert, Error, Violation
 import watchtower.alert.consumers
@@ -17,11 +18,14 @@ class Consumer:
         "warning_consumers": ["log"],
         "normal_consumers": ["log"],
         "error_consumers": ["log"],
+        "timer_consumers": ["log"],
 
         "brokers": "localhost:9092",
         "topic_prefix": "watchtower",
         "alert_topic": "alerts",
         "error_topic": "errors",
+
+        "timer_interval": 60,
 
         "consumers": {},
     }
@@ -30,6 +34,8 @@ class Consumer:
         self.config_file = os.path.expanduser(config_file)
         self.config = dict(self.defaults)
         self._load_config()
+
+        self.next_timer = None
 
         self.consumer_instances = None
         self._init_plugins()
@@ -42,11 +48,11 @@ class Consumer:
         # set up our consumers
         self.alert_consumer =\
             self._topic(self.config['alert_topic'])\
-                .get_simple_consumer(consumer_timeout_ms=5000,
+                .get_simple_consumer(consumer_timeout_ms=1000,
                                      use_rdkafka=True)
         self.error_consumer =\
             self._topic(self.config['error_topic'])\
-                .get_simple_consumer(consumer_timeout_ms=5000,
+                .get_simple_consumer(consumer_timeout_ms=1000,
                                      use_rdkafka=True)
 
     def _init_plugins(self):
@@ -80,7 +86,7 @@ class Consumer:
 
     def _init_consumers(self):
         self.consumers = {}
-        for level in watchtower.alert.Alert.LEVELS:
+        for level in watchtower.alert.Alert.LEVELS + ['timer']:
             cfg = self.config[level+'_consumers']
             self.consumers[level] = []
             for consumer in cfg:
@@ -94,12 +100,29 @@ class Consumer:
         for consumer in self.consumers['error']:
             consumer.handle_error(alert)
 
+    def _handle_timer(self, now):
+        for consumer in self.consumers['timer']:
+            consumer.handle_timer(now)
+
     def run(self):
         # loop forever consuming alerts
         while True:
+            # TIMERS
+            now = time.time()
+            if not self.next_timer or now >= self.next_timer:
+                if self.next_timer:
+                    self._handle_timer(now)
+                    self.next_timer += self.config['timer_interval']
+                else:
+                    interval = self.config['timer_interval']
+                    self.next_timer = (int(now/interval) * interval) + interval
+
+            # ALERTS
             for msg in self.alert_consumer:
                 if msg is not None:
                     self._handle_alert(watchtower.alert.Alert.from_json(msg.value))
+
+            # ERRORS
             for msg in self.error_consumer:
                 if msg is not None:
                     self._handle_error(watchtower.alert.Error.from_json(msg.value))
