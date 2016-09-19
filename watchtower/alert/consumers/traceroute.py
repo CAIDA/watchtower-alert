@@ -40,3 +40,5 @@ class TracerouteConsumer(AbstractConsumer):
     def handle_error(self, error):
         pass  # we don't care about errors
 
+    def handle_timer(self, now):
+        pass

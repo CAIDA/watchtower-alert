@@ -29,3 +29,5 @@ class LogConsumer(AbstractConsumer):
                                              error.message)
         logging.error(log_str)
 
+    def handle_timer(self, now):
+        logging.info("TIMER: periodic timer fired at %d" % now)

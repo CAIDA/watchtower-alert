@@ -88,8 +88,6 @@ class TimeseriesConsumer(AbstractConsumer):
             state['int_start'] = this_int_start
             return
         if this_int_start <= state['int_start']:
-            # current interval. flush anyway to get partial results
-            state['kp'].flush(state['int_start'])
             return
 
         while state['int_start'] < this_int_start:
@@ -102,3 +100,10 @@ class TimeseriesConsumer(AbstractConsumer):
     def handle_error(self, error):
         pass
 
+    def handle_timer(self, now):
+        logging.debug("Flushing all KPs...")
+        # flush the kps
+        for name in self.alert_state:
+            logging.debug("Flushing KP for %s" % name)
+            state = self.alert_state[name]
+            state['kp'].flush(state['int_start'])

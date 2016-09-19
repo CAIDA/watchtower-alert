@@ -160,3 +160,6 @@ class DatabaseConsumer(AbstractConsumer):
                 conn.execute(ins)
             except sqlalchemy.exc.IntegrityError:
                 logging.warn("Error insert failed (maybe it already exists?)")
+
+    def handle_timer(self, now):
+        pass
