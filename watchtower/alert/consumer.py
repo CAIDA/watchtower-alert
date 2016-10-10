@@ -119,13 +119,25 @@ class Consumer:
 
             # ALERTS
             for msg in self.alert_consumer:
-                if msg is not None and len(msg.value):
-                    self._handle_alert(watchtower.alert.Alert.from_json(msg.value))
+                if msg is not None:
+                    try:
+                        alert = watchtower.alert.Alert.from_json(msg.value)
+                    except ValueError:
+                        logging.error("Could not extract Alert from json: %s" % msg.value)
+                        alert = None
+                    if alert:
+                        self._handle_alert(alert)
 
             # ERRORS
             for msg in self.error_consumer:
-                if msg is not None and len(msg.value):
-                    self._handle_error(watchtower.alert.Error.from_json(msg.value))
+                if msg is not None:
+                    try:
+                        error = watchtower.alert.Error.from_json(msg.value)
+                    except ValueError:
+                        logging.error("Could not extract Error from json: %s" % msg.value)
+                        error = None
+                    if error:
+                        self._handle_error(error)
 
 
 def main():
