@@ -119,12 +119,12 @@ class Consumer:
 
             # ALERTS
             for msg in self.alert_consumer:
-                if msg is not None:
+                if msg is not None and len(msg.value):
                     self._handle_alert(watchtower.alert.Alert.from_json(msg.value))
 
             # ERRORS
             for msg in self.error_consumer:
-                if msg is not None:
+                if msg is not None and len(msg.value):
                     self._handle_error(watchtower.alert.Error.from_json(msg.value))
 
 
