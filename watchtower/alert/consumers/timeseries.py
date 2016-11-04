@@ -11,7 +11,9 @@ class TimeseriesConsumer(AbstractConsumer):
         'backends': ['ascii'],
         'ascii-opts': "",
         'metric_prefix': 'projects.ioda.alerts',
-        'level_leaf': 'alert_level'
+        'level_leaf': 'alert_level',
+        'producer_repeat_interval': 7200,  # 2 hours
+        'producer_max_interval': 600
     }
 
     level_values = {
@@ -29,6 +31,9 @@ class TimeseriesConsumer(AbstractConsumer):
         self.alert_state = {}
         self.ts = None
         self._init_ts()
+
+        self.no_alert_timeout = sum(map(self.config.get,
+            ('producer_repeat_interval', 'producer_max_interval', 'interval')))
 
     def _init_ts(self):
         logging.info("Initializing PyTimeseries")
@@ -52,6 +57,7 @@ class TimeseriesConsumer(AbstractConsumer):
                 'int_start': self.compute_interval_start(alert.time),
                 'last_time': alert.time,
                 'kp': self.ts.new_keypackage(reset=False)
+                'violations_last_times': {}  # violation_idx: violation_last_time
             }
             self.alert_state[alert.name] = state
 
@@ -70,6 +76,9 @@ class TimeseriesConsumer(AbstractConsumer):
             if idx is None:
                 idx = state['kp'].add_key(key)
             state['kp'].set(idx, self.level_values[alert.level])
+
+            # Track latest time of each violation's ocurrence
+            state['violations_last_times'][idx] = alert.time
 
     def _build_key(self, alert, violation):
         # "projects.ioda.alerts.[ALERT-FQID].[META-FQID].alert_level
@@ -103,7 +112,14 @@ class TimeseriesConsumer(AbstractConsumer):
     def handle_timer(self, now):
         logging.debug("Flushing all KPs...")
         # flush the kps
-        for name in self.alert_state:
+        for name, state in self.alert_state.iteritems():
             logging.debug("Flushing KP for %s" % name)
-            state = self.alert_state[name]
+
+            # Producer notifies normal/warning/... violations periodically even if nothing has changed.
+            # Check if no violation is recieved for too long, which implies sentry has been broken.
+            # Set level of this violation to normal in this case.
+            for idx, last_time in state['violations_last_times'].iteritems():
+                if now - last_time >= self.no_alert_timeout:
+                    state['kp'].set(idx, self.level_values['normal'])
+
             state['kp'].flush(state['int_start'])
