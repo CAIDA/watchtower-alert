@@ -34,7 +34,6 @@ class TimeseriesConsumer(AbstractConsumer):
 
         self.no_alert_timeout = sum(map(self.config.get,
             ('producer_repeat_interval', 'producer_max_interval', 'interval')))
-        self.violations_last_times = {}  # alert.name => [(violation_idx, violation_last_time)]
 
     def _init_ts(self):
         logging.info("Initializing PyTimeseries")
@@ -58,6 +57,7 @@ class TimeseriesConsumer(AbstractConsumer):
                 'int_start': self.compute_interval_start(alert.time),
                 'last_time': alert.time,
                 'kp': self.ts.new_keypackage(reset=False)
+                'violations_last_times': {}  # violation_idx: violation_last_time
             }
             self.alert_state[alert.name] = state
 
@@ -78,8 +78,7 @@ class TimeseriesConsumer(AbstractConsumer):
             state['kp'].set(idx, self.level_values[alert.level])
 
             # Track latest time of each violation's ocurrence
-            last_times = self.violations_last_times.setdefault(alert.name, {})
-            last_times[idx] = alert.time
+            state['violations_last_times'][idx] = alert.time
 
     def _build_key(self, alert, violation):
         # "projects.ioda.alerts.[ALERT-FQID].[META-FQID].alert_level
@@ -119,7 +118,7 @@ class TimeseriesConsumer(AbstractConsumer):
             # Producer notifies normal/warning/... violations periodically even if nothing has changed.
             # Check if no violation is recieved for too long, which implies sentry has been broken.
             # Set level of this violation to normal in this case.
-            for idx, last_time in self.violations_last_times[name].iteritems():
+            for idx, last_time in state['violations_last_times'].iteritems():
                 if now - last_time >= self.no_alert_timeout:
                     state['kp'].set(idx, self.level_values['normal'])
 
