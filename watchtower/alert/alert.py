@@ -49,6 +49,7 @@ class Alert:
         expressions = [v.expression for v in self.violations]
         # do a batch lookup for efficiency
         resp = requests.post(self.CH_META_API, {'expression[]': expressions})
+        print('resp.text:', resp.text)
         res = resp.json()
         if not res or 'data' not in res or not res['data']:
             raise RuntimeError('Charthouse annotation failed with error: %s' %
@@ -60,6 +61,7 @@ class Alert:
             if expression not in res['data']:
                 continue
             for ann in res['data'][expression]['annotations']:
+                print(ann)
                 if ann['type'] != 'meta':
                     continue
                 if ann['attributes']['type'] == 'geo':
@@ -68,7 +70,7 @@ class Alert:
                     metas[expression].append({
                         'type': 'asn',
                         'fqid': ann['attributes']['fqid'],
-                        'val': ann['attributes']['asn']
+                        'code': ann['attributes']['asn']
                     })
         # now assign meta to each violation
         for v in self.violations:
@@ -81,7 +83,7 @@ class Alert:
         return {
             'type': type,
             'fqid': ann['attributes']['fqid'],
-            'val': ann['attributes'][type]['id']
+            'code': ann['attributes'][type]['id']
         }
 
     @property
@@ -186,7 +188,7 @@ class Violation:
     @expression.setter
     def expression(self, v):
         self.expression = v
-        
+
     @property
     def condition(self):
         return self.condition
@@ -194,7 +196,7 @@ class Violation:
     @condition.setter
     def condition(self, v):
         self.condition = v
-        
+
     @property
     def value(self):
         return self.value
@@ -210,7 +212,7 @@ class Violation:
     @history_value.setter
     def history_value(self, v):
         self.history_value = v
-        
+
     @property
     def history(self):
         return self.history
@@ -309,7 +311,7 @@ class Error:
     @history_expression.setter
     def history_expression(self, v):
         self.history_expression = v
-        
+
     @property
     def message(self):
         return self.message
