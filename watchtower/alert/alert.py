@@ -49,7 +49,6 @@ class Alert:
         expressions = [v.expression for v in self.violations]
         # do a batch lookup for efficiency
         resp = requests.post(self.CH_META_API, {'expression[]': expressions})
-        print('resp.text:', resp.text)
         res = resp.json()
         if not res or 'data' not in res or not res['data']:
             raise RuntimeError('Charthouse annotation failed with error: %s' %
@@ -61,7 +60,6 @@ class Alert:
             if expression not in res['data']:
                 continue
             for ann in res['data'][expression]['annotations']:
-                print(ann)
                 if ann['type'] != 'meta':
                     continue
                 if ann['attributes']['type'] == 'geo':
