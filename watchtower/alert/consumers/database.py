@@ -45,11 +45,11 @@ class DatabaseConsumer(AbstractConsumer):
             sqlalchemy.Column('history_query_expression', sqlalchemy.String,
                               nullable=False),
 
-            sqlalchemy.Column('expression', sqlalchemy.String, nullable=False),
-            sqlalchemy.Column('condition', sqlalchemy.String, nullable=False),
-            sqlalchemy.Column('value', sqlalchemy.Float, nullable=False),
-            sqlalchemy.Column('history_value', sqlalchemy.Float, nullable=False),
-            sqlalchemy.Column('history', sqlalchemy.String, nullable=False),
+            sqlalchemy.Column('expression', sqlalchemy.String),
+            sqlalchemy.Column('condition', sqlalchemy.String),
+            sqlalchemy.Column('value', sqlalchemy.Float),
+            sqlalchemy.Column('history_value', sqlalchemy.Float),
+            sqlalchemy.Column('history', sqlalchemy.String),
 
             # Metadata, which some violations do not have
             sqlalchemy.Column('type', sqlalchemy.String),
