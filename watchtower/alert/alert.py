@@ -66,9 +66,9 @@ class Alert:
                     metas[expression].append(self._parse_geo_ann(ann))
                 elif ann['attributes']['type'] == 'asn':
                     metas[expression].append({
-                        'type': 'asn',
+                        'meta_type': 'asn',
                         'fqid': ann['attributes']['fqid'],
-                        'code': ann['attributes']['asn']
+                        'meta_code': ann['attributes']['asn']
                     })
         # now assign meta to each violation
         for v in self.violations:
@@ -79,9 +79,9 @@ class Alert:
     def _parse_geo_ann(ann):
         type = ann['attributes']['nativeLevel']
         return {
-            'type': type,
+            'meta_type': type,
             'fqid': ann['attributes']['fqid'],
-            'code': ann['attributes'][type]['id']
+            'meta_code': ann['attributes'][type]['id']
         }
 
     @property

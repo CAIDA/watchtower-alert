@@ -30,8 +30,9 @@ class DatabaseConsumer(AbstractConsumer):
     def _init_db(self):
         meta = sqlalchemy.MetaData()
 
+        t_alert_name = self._table_name('alert')
         self.t_alert = sqlalchemy.Table(
-            self._table_name('alert'),
+            t_alert_name,
             meta,
             sqlalchemy.Column('id', sqlalchemy.Integer,
                               sqlalchemy.Sequence('watchtower_alert_id_seq'),
@@ -52,12 +53,12 @@ class DatabaseConsumer(AbstractConsumer):
             sqlalchemy.Column('history', sqlalchemy.String),
 
             # Metadata, which some violations do not have
-            sqlalchemy.Column('type', sqlalchemy.String),
-            sqlalchemy.Column('code', sqlalchemy.String),
+            sqlalchemy.Column('meta_type', sqlalchemy.String),
+            sqlalchemy.Column('meta_code', sqlalchemy.String),
 
             sqlalchemy.UniqueConstraint('fqid', 'time', 'level', 'expression'),
-            sqlalchemy.Index('watchtower_alert_type_idx', 'type'),
-            sqlalchemy.Index('watchtower_alert_type_code_idx', 'type', 'code')
+            sqlalchemy.Index(t_alert_name + '_type_idx', 'meta_type'),
+            sqlalchemy.Index(t_alert_name + '_type_code_idx', 'meta_type', 'meta_code')
         )
 
         self.t_error = sqlalchemy.Table(
@@ -108,8 +109,8 @@ class DatabaseConsumer(AbstractConsumer):
                 mdicts = vdict.pop('meta')
                 assert len(mdicts) <= 1, 'Violation was annotated with more than 1 metadata entity'
                 mdict = mdicts[0] if mdicts else {
-                        'type': None,
-                        'code': None,
+                        'meta_type': None,
+                        'meta_code': None,
                     }
                 vdict.update({
                     'fqid': adict['fqid'],
@@ -120,8 +121,8 @@ class DatabaseConsumer(AbstractConsumer):
                     'history_query_expression': adict['history_expression'],
                     'method': adict['method'],
                     'history': str(vdict['history']),
-                    'type': mdict['type'],
-                    'code': mdict['code'],
+                    'meta_type': mdict['meta_type'],
+                    'meta_code': mdict['meta_code'],
                 })
 
             # dirty hax below. should do a select first
