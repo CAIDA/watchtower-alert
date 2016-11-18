@@ -66,9 +66,9 @@ class Alert:
                     metas[expression].append(self._parse_geo_ann(ann))
                 elif ann['attributes']['type'] == 'asn':
                     metas[expression].append({
-                        'type': 'asn',
+                        'meta_type': 'asn',
                         'fqid': ann['attributes']['fqid'],
-                        'val': ann['attributes']['asn']
+                        'meta_code': ann['attributes']['asn']
                     })
         # now assign meta to each violation
         for v in self.violations:
@@ -79,9 +79,9 @@ class Alert:
     def _parse_geo_ann(ann):
         type = ann['attributes']['nativeLevel']
         return {
-            'type': type,
+            'meta_type': type,
             'fqid': ann['attributes']['fqid'],
-            'val': ann['attributes'][type]['id']
+            'meta_code': ann['attributes'][type]['id']
         }
 
     @property
@@ -186,7 +186,7 @@ class Violation:
     @expression.setter
     def expression(self, v):
         self.expression = v
-        
+
     @property
     def condition(self):
         return self.condition
@@ -194,7 +194,7 @@ class Violation:
     @condition.setter
     def condition(self, v):
         self.condition = v
-        
+
     @property
     def value(self):
         return self.value
@@ -210,7 +210,7 @@ class Violation:
     @history_value.setter
     def history_value(self, v):
         self.history_value = v
-        
+
     @property
     def history(self):
         return self.history
@@ -309,7 +309,7 @@ class Error:
     @history_expression.setter
     def history_expression(self, v):
         self.history_expression = v
-        
+
     @property
     def message(self):
         return self.message

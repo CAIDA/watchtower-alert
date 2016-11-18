@@ -94,3 +94,5 @@ ENV/
 
 # Spyder project settings
 .spyderproject
+
+sftp-config.json

@@ -56,7 +56,7 @@ class TimeseriesConsumer(AbstractConsumer):
             state = {
                 'int_start': self.compute_interval_start(alert.time),
                 'last_time': alert.time,
-                'kp': self.ts.new_keypackage(reset=False)
+                'kp': self.ts.new_keypackage(reset=False),
                 'violations_last_times': {}  # violation_idx: violation_last_time
             }
             self.alert_state[alert.name] = state

@@ -17,8 +17,6 @@ class DatabaseConsumer(AbstractConsumer):
         'engine_params': {},
         'table_prefix': 'watchtower',
         'alert_table_name': 'alert',
-        'violation_table_name': 'violation',
-        'violation_meta_table_name': 'violation_meta',
         'error_table_name': 'error',
     }
 
@@ -32,8 +30,9 @@ class DatabaseConsumer(AbstractConsumer):
     def _init_db(self):
         meta = sqlalchemy.MetaData()
 
+        t_alert_name = self._table_name('alert')
         self.t_alert = sqlalchemy.Table(
-            self._table_name('alert'),
+            t_alert_name,
             meta,
             sqlalchemy.Column('id', sqlalchemy.Integer,
                               sqlalchemy.Sequence('watchtower_alert_id_seq'),
@@ -43,38 +42,23 @@ class DatabaseConsumer(AbstractConsumer):
             sqlalchemy.Column('time', sqlalchemy.Integer, nullable=False),
             sqlalchemy.Column('level', sqlalchemy.String, nullable=False),
             sqlalchemy.Column('method', sqlalchemy.String, nullable=False),
-            sqlalchemy.Column('expression', sqlalchemy.String, nullable=False),
-            sqlalchemy.Column('history_expression', sqlalchemy.String,
+            sqlalchemy.Column('query_expression', sqlalchemy.String, nullable=False),
+            sqlalchemy.Column('history_query_expression', sqlalchemy.String,
                               nullable=False),
-            sqlalchemy.UniqueConstraint('fqid', 'time', 'level', 'expression')
-        )
 
-        # Violations are all occurences of rule violations grouped by level
-        # under an alert
-        self.t_violation = sqlalchemy.Table(
-            self._table_name('violation'),
-            meta,
-            sqlalchemy.Column('id', sqlalchemy.Integer,
-                              sqlalchemy.Sequence('watchtower_violation_id_seq'),
-                              primary_key=True),
-            sqlalchemy.Column('expression', sqlalchemy.String, nullable=False),
+            sqlalchemy.Column('expression', sqlalchemy.String),
             sqlalchemy.Column('condition', sqlalchemy.String),
             sqlalchemy.Column('value', sqlalchemy.Float),
             sqlalchemy.Column('history_value', sqlalchemy.Float),
             sqlalchemy.Column('history', sqlalchemy.String),
-            sqlalchemy.Column('alert_id', sqlalchemy.Integer,
-                              sqlalchemy.ForeignKey(self.t_alert.c.id))
-        )
 
-        self.t_violation_meta = sqlalchemy.Table(
-            self._table_name('violation_meta'),
-            meta,
-            sqlalchemy.Column('violation_id', sqlalchemy.Integer,
-                              sqlalchemy.ForeignKey(self.t_violation.c.id)),
-            sqlalchemy.Column('fqid', sqlalchemy.String, nullable=False),
-            sqlalchemy.Column('type', sqlalchemy.String, nullable=False),
-            sqlalchemy.Column('val', sqlalchemy.String, nullable=False),
-            sqlalchemy.PrimaryKeyConstraint('violation_id', 'type')
+            # Metadata, which some violations do not have
+            sqlalchemy.Column('meta_type', sqlalchemy.String),
+            sqlalchemy.Column('meta_code', sqlalchemy.String),
+
+            sqlalchemy.UniqueConstraint('fqid', 'time', 'level', 'expression'),
+            sqlalchemy.Index(t_alert_name + '_type_idx', 'meta_type'),
+            sqlalchemy.Index(t_alert_name + '_type_code_idx', 'meta_type', 'meta_code')
         )
 
         self.t_error = sqlalchemy.Table(
@@ -86,11 +70,11 @@ class DatabaseConsumer(AbstractConsumer):
             sqlalchemy.Column('fqid', sqlalchemy.String, nullable=False),
             sqlalchemy.Column('name', sqlalchemy.String, nullable=False),
             sqlalchemy.Column('time', sqlalchemy.Integer, nullable=False),
-            sqlalchemy.Column('expression', sqlalchemy.String, nullable=False),
-            sqlalchemy.Column('history_expression', sqlalchemy.String, nullable=False),
+            sqlalchemy.Column('query_expression', sqlalchemy.String, nullable=False),
+            sqlalchemy.Column('history_query_expression', sqlalchemy.String, nullable=False),
             sqlalchemy.Column('type', sqlalchemy.String, nullable=False),
             sqlalchemy.Column('message', sqlalchemy.String, nullable=False),
-            sqlalchemy.UniqueConstraint('fqid', 'time', 'expression', 'type',
+            sqlalchemy.UniqueConstraint('fqid', 'time', 'query_expression', 'type',
                                         'message')
         )
 
@@ -120,43 +104,45 @@ class DatabaseConsumer(AbstractConsumer):
         alert.annotate_violations()
         with self.engine.connect() as conn:
             adict = alert.as_dict()
-            violdict = adict.pop('violations')
+            vdicts = adict.pop('violations')
+            for vdict in vdicts:
+                mdicts = vdict.pop('meta')
+                assert len(mdicts) <= 1, 'Violation was annotated with more than 1 metadata entity'
+                mdict = mdicts[0] if mdicts else {
+                        'meta_type': None,
+                        'meta_code': None,
+                    }
+                vdict.update({
+                    'fqid': adict['fqid'],
+                    'name': adict['name'],
+                    'level': adict['level'],
+                    'time': adict['time'],
+                    'query_expression': adict['expression'],
+                    'history_query_expression': adict['history_expression'],
+                    'method': adict['method'],
+                    'history': str(vdict['history']),
+                    'meta_type': mdict['meta_type'],
+                    'meta_code': mdict['meta_code'],
+                })
 
             # dirty hax below. should do a select first
             try:
-                ins = self.t_alert.insert().values(adict)
+                ins = self.t_alert.insert().values(vdicts)
                 res = conn.execute(ins)
-                [alert_id] = res.inserted_primary_key
-                self._insert_violations(alert_id, violdict)
-
             except sqlalchemy.exc.IntegrityError:
                 logging.warn("Alert insert failed (maybe it already exists?)")
-
-    def _insert_violations(self, alert_id, vdicts):
-        for v in vdicts:
-            v['alert_id'] = alert_id
-            v['history'] = str(v['history'])
-            metas = v.pop('meta')
-            with self.engine.connect() as conn:
-                ins = self.t_violation.insert().values(v)
-                res = conn.execute(ins)
-                [viol_id] = res.inserted_primary_key
-                self._insert_violation_meta(viol_id, metas)
-
-    def _insert_violation_meta(self, viol_id, metas):
-        if not metas or not len(metas):
-            return
-        for meta in metas:
-            meta.update({'violation_id': viol_id})
-        with self.engine.connect() as conn:
-            ins = self.t_violation_meta.insert().values(metas)
-            conn.execute(ins)
 
     def handle_error(self, error):
         logging.debug("DB consumer handling error")
         with self.engine.connect() as conn:
+            edict = error.as_dict()
+            edict.update({
+                'query_expression': edict.pop('expression'),
+                'history_query_expression': edict.pop('history_expression')
+            })
+
             try:
-                ins = self.t_error.insert().values(**error.as_dict())
+                ins = self.t_error.insert().values(**edict)
                 conn.execute(ins)
             except sqlalchemy.exc.IntegrityError:
                 logging.warn("Error insert failed (maybe it already exists?)")
