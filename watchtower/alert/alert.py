@@ -157,13 +157,14 @@ class Alert:
 
 class Violation:
 
-    def __init__(self, expression, condition, value, history_value, history,
+    def __init__(self, expression, condition, value, history_value, history, time,
                  meta=None):
         self.expression = expression
         self.condition = condition
         self.value = value
         self.history_value = history_value
         self.history = history
+        self.time = time
         self.meta = meta
 
     def __repr__(self):
@@ -176,6 +177,7 @@ class Violation:
             'value': self.value,
             'history_value': self.history_value,
             'history': self.history,
+            'time': self.time,
             'meta': self.meta,
         }
 
@@ -202,6 +204,14 @@ class Violation:
     @value.setter
     def value(self, v):
         self.value = v
+
+    @property
+    def time(self):
+        return self.time
+
+    @time.setter
+    def time(self, v):
+        self.time = v
 
     @property
     def history_value(self):

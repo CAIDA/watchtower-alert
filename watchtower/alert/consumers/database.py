@@ -39,13 +39,14 @@ class DatabaseConsumer(AbstractConsumer):
                               primary_key=True),
             sqlalchemy.Column('fqid', sqlalchemy.String, nullable=False),
             sqlalchemy.Column('name', sqlalchemy.String, nullable=False),
-            sqlalchemy.Column('time', sqlalchemy.Integer, nullable=False),
+            sqlalchemy.Column('query_time', sqlalchemy.Integer, nullable=False),
             sqlalchemy.Column('level', sqlalchemy.String, nullable=False),
             sqlalchemy.Column('method', sqlalchemy.String, nullable=False),
             sqlalchemy.Column('query_expression', sqlalchemy.String, nullable=False),
             sqlalchemy.Column('history_query_expression', sqlalchemy.String,
                               nullable=False),
 
+            sqlalchemy.Column('time', sqlalchemy.Integer),
             sqlalchemy.Column('expression', sqlalchemy.String),
             sqlalchemy.Column('condition', sqlalchemy.String),
             sqlalchemy.Column('value', sqlalchemy.Float),
@@ -56,7 +57,7 @@ class DatabaseConsumer(AbstractConsumer):
             sqlalchemy.Column('meta_type', sqlalchemy.String),
             sqlalchemy.Column('meta_code', sqlalchemy.String),
 
-            sqlalchemy.UniqueConstraint('fqid', 'time', 'level', 'expression'),
+            # sqlalchemy.UniqueConstraint('fqid', 'query_time', 'level', 'query_expression'),
             sqlalchemy.Index(t_alert_name + '_type_idx', 'meta_type'),
             sqlalchemy.Index(t_alert_name + '_type_code_idx', 'meta_type', 'meta_code')
         )
@@ -69,12 +70,12 @@ class DatabaseConsumer(AbstractConsumer):
                               primary_key=True),
             sqlalchemy.Column('fqid', sqlalchemy.String, nullable=False),
             sqlalchemy.Column('name', sqlalchemy.String, nullable=False),
-            sqlalchemy.Column('time', sqlalchemy.Integer, nullable=False),
+            sqlalchemy.Column('query_time', sqlalchemy.Integer, nullable=False),
             sqlalchemy.Column('query_expression', sqlalchemy.String, nullable=False),
             sqlalchemy.Column('history_query_expression', sqlalchemy.String, nullable=False),
             sqlalchemy.Column('type', sqlalchemy.String, nullable=False),
             sqlalchemy.Column('message', sqlalchemy.String, nullable=False),
-            sqlalchemy.UniqueConstraint('fqid', 'time', 'query_expression', 'type',
+            sqlalchemy.UniqueConstraint('fqid', 'query_time', 'query_expression', 'type',
                                         'message')
         )
 
@@ -116,7 +117,7 @@ class DatabaseConsumer(AbstractConsumer):
                     'fqid': adict['fqid'],
                     'name': adict['name'],
                     'level': adict['level'],
-                    'time': adict['time'],
+                    'query_time': adict['time'],
                     'query_expression': adict['expression'],
                     'history_query_expression': adict['history_expression'],
                     'method': adict['method'],
@@ -137,6 +138,7 @@ class DatabaseConsumer(AbstractConsumer):
         with self.engine.connect() as conn:
             edict = error.as_dict()
             edict.update({
+                'query_time': edict.pop('time'),
                 'query_expression': edict.pop('expression'),
                 'history_query_expression': edict.pop('history_expression')
             })
