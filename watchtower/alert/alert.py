@@ -1,6 +1,12 @@
 import json
 import requests
 
+# Shut requests up
+import warnings
+warnings.filterwarnings('once', r'.*InsecurePlatformWarning.*')
+import logging
+logging.getLogger("requests").setLevel(logging.WARNING)
+
 
 class Alert:
 
