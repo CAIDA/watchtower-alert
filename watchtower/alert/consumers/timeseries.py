@@ -65,6 +65,7 @@ class TimeseriesConsumer(AbstractConsumer):
 
         # we need meta, so make sure it is loaded
         alert.annotate_violations()
+        not_updated_viols = dict(state['violations_last_times'])
         for v in alert.violations:
             if not len(v.meta):
                 continue
@@ -79,6 +80,10 @@ class TimeseriesConsumer(AbstractConsumer):
 
             # Track latest time of each violation's ocurrence
             state['violations_last_times'][idx] = alert.time
+
+            not_updated_viols.pop(idx, None)
+
+        self._reset_violations_level(not_updated_viols, state['kp'], alert.time)
 
     def _build_key(self, alert, violation):
         # "projects.ioda.alerts.[ALERT-FQID].[META-FQID].alert_level
@@ -115,11 +120,16 @@ class TimeseriesConsumer(AbstractConsumer):
         for name, state in self.alert_state.iteritems():
             logging.debug("Flushing KP for %s" % name)
 
-            # Producer notifies normal/warning/... violations periodically even if nothing has changed.
-            # Check if no violation is recieved for too long, which implies sentry has been broken.
-            # Set level of this violation to normal in this case.
-            for idx, last_time in state['violations_last_times'].iteritems():
-                if now - last_time >= self.no_alert_timeout:
-                    state['kp'].set(idx, self.level_values['normal'])
-
+            self._reset_violations_level(state['violations_last_times'], state['kp'], now)
             state['kp'].flush(state['int_start'])
+
+    def _reset_violations_level(self, violations, kp, now):
+        """Reset level of a series to normal when no violation of it is recieved
+        for too long, assuming it has came back to normal.
+
+        :param dict violations:
+        :param int now:
+        """
+        for idx, last_time in violations.iteritems():
+            if now - last_time >= self.no_alert_timeout:
+                kp.set(idx, self.level_values['normal'])
