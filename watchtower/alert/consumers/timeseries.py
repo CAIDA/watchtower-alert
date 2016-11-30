@@ -71,7 +71,7 @@ class TimeseriesConsumer(AbstractConsumer):
             if len(v.meta) > 1:
                 raise NotImplementedError('Multi-meta violations not supported')
             key = self._build_key(alert, v)
-            logging.debug("Key: %s" % key)
+            # logging.debug("Key: %s" % key)
             idx = state['kp'].get_key(key)
             if idx is None:
                 idx = state['kp'].add_key(key)

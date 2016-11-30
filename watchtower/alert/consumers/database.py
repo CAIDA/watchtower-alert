@@ -34,25 +34,29 @@ class DatabaseConsumer(AbstractConsumer):
         self.t_alert = sqlalchemy.Table(
             t_alert_name,
             meta,
+
+            # Alert columns
             sqlalchemy.Column('id', sqlalchemy.Integer,
                               sqlalchemy.Sequence('watchtower_alert_id_seq'),
                               primary_key=True),
             sqlalchemy.Column('fqid', sqlalchemy.String, nullable=False),
             sqlalchemy.Column('name', sqlalchemy.String, nullable=False),
-            sqlalchemy.Column('time', sqlalchemy.Integer, nullable=False),
+            sqlalchemy.Column('query_time', sqlalchemy.Integer, nullable=False),
             sqlalchemy.Column('level', sqlalchemy.String, nullable=False),
             sqlalchemy.Column('method', sqlalchemy.String, nullable=False),
             sqlalchemy.Column('query_expression', sqlalchemy.String, nullable=False),
             sqlalchemy.Column('history_query_expression', sqlalchemy.String,
                               nullable=False),
 
+            # Violation columns, some of which could be null when no data, back to normal, etc
+            sqlalchemy.Column('time', sqlalchemy.Integer),
             sqlalchemy.Column('expression', sqlalchemy.String),
             sqlalchemy.Column('condition', sqlalchemy.String),
             sqlalchemy.Column('value', sqlalchemy.Float),
             sqlalchemy.Column('history_value', sqlalchemy.Float),
             sqlalchemy.Column('history', sqlalchemy.String),
 
-            # Metadata, which some violations do not have
+            # Metadata columns, which some violations do not have
             sqlalchemy.Column('meta_type', sqlalchemy.String),
             sqlalchemy.Column('meta_code', sqlalchemy.String),
 
@@ -69,12 +73,12 @@ class DatabaseConsumer(AbstractConsumer):
                               primary_key=True),
             sqlalchemy.Column('fqid', sqlalchemy.String, nullable=False),
             sqlalchemy.Column('name', sqlalchemy.String, nullable=False),
-            sqlalchemy.Column('time', sqlalchemy.Integer, nullable=False),
+            sqlalchemy.Column('query_time', sqlalchemy.Integer, nullable=False),
             sqlalchemy.Column('query_expression', sqlalchemy.String, nullable=False),
             sqlalchemy.Column('history_query_expression', sqlalchemy.String, nullable=False),
             sqlalchemy.Column('type', sqlalchemy.String, nullable=False),
             sqlalchemy.Column('message', sqlalchemy.String, nullable=False),
-            sqlalchemy.UniqueConstraint('fqid', 'time', 'query_expression', 'type',
+            sqlalchemy.UniqueConstraint('fqid', 'query_time', 'query_expression', 'type',
                                         'message')
         )
 
@@ -116,7 +120,7 @@ class DatabaseConsumer(AbstractConsumer):
                     'fqid': adict['fqid'],
                     'name': adict['name'],
                     'level': adict['level'],
-                    'time': adict['time'],
+                    'query_time': adict['time'],
                     'query_expression': adict['expression'],
                     'history_query_expression': adict['history_expression'],
                     'method': adict['method'],
@@ -129,14 +133,16 @@ class DatabaseConsumer(AbstractConsumer):
             try:
                 ins = self.t_alert.insert().values(vdicts)
                 res = conn.execute(ins)
-            except sqlalchemy.exc.IntegrityError:
+            except sqlalchemy.exc.IntegrityError as e:
                 logging.warn("Alert insert failed (maybe it already exists?)")
+                logging.debug(e)
 
     def handle_error(self, error):
         logging.debug("DB consumer handling error")
         with self.engine.connect() as conn:
             edict = error.as_dict()
             edict.update({
+                'query_time': edict.pop('time'),
                 'query_expression': edict.pop('expression'),
                 'history_query_expression': edict.pop('history_expression')
             })
@@ -144,8 +150,9 @@ class DatabaseConsumer(AbstractConsumer):
             try:
                 ins = self.t_error.insert().values(**edict)
                 conn.execute(ins)
-            except sqlalchemy.exc.IntegrityError:
+            except sqlalchemy.exc.IntegrityError as e:
                 logging.warn("Error insert failed (maybe it already exists?)")
+                logging.debug(e)
 
     def handle_timer(self, now):
         pass
