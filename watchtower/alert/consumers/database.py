@@ -44,17 +44,17 @@ class DatabaseConsumer(AbstractConsumer):
             sqlalchemy.Column('query_time', sqlalchemy.Integer, nullable=False),
             sqlalchemy.Column('level', sqlalchemy.String, nullable=False),
             sqlalchemy.Column('method', sqlalchemy.String, nullable=False),
-            sqlalchemy.Column('query_expression', sqlalchemy.String, nullable=False),
-            sqlalchemy.Column('history_query_expression', sqlalchemy.String,
+            sqlalchemy.Column('query_expression', sqlalchemy.Text, nullable=False),
+            sqlalchemy.Column('history_query_expression', sqlalchemy.Text,
                               nullable=False),
 
             # Violation columns, some of which could be null when no data, back to normal, etc
             sqlalchemy.Column('time', sqlalchemy.Integer),
-            sqlalchemy.Column('expression', sqlalchemy.String),
+            sqlalchemy.Column('expression', sqlalchemy.Text),
             sqlalchemy.Column('condition', sqlalchemy.String),
             sqlalchemy.Column('value', sqlalchemy.Float),
             sqlalchemy.Column('history_value', sqlalchemy.Float),
-            sqlalchemy.Column('history', sqlalchemy.String),
+            sqlalchemy.Column('history', sqlalchemy.Text),
 
             # Metadata columns, which some violations do not have
             sqlalchemy.Column('meta_type', sqlalchemy.String),
