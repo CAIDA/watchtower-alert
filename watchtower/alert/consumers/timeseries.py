@@ -12,6 +12,7 @@ class TimeseriesConsumer(AbstractConsumer):
         'ascii-opts': "",
         'metric_prefix': 'projects.ioda.alerts',
         'level_leaf': 'alert_level',
+        'delta_leaf': 'delta_pct_x100',
         'producer_repeat_interval': 7200,  # 2 hours
         'producer_max_interval': 600
     }
@@ -71,12 +72,26 @@ class TimeseriesConsumer(AbstractConsumer):
                 continue
             if len(v.meta) > 1:
                 raise NotImplementedError('Multi-meta violations not supported')
-            key = self._build_key(alert, v)
+
+            # create the alert_level metric
+            key = self._build_key(alert, v, self.config['level_leaf'])
             # logging.debug("Key: %s" % key)
             idx = state['kp'].get_key(key)
             if idx is None:
                 idx = state['kp'].add_key(key)
             state['kp'].set(idx, self.level_values[alert.level])
+
+            # create the delta_pct leaf
+            key = self._build_key(alert, v, self.config['delta_leaf'])
+            # logging.debug("Key: %s" % key)
+            idx = state['kp'].get_key(key)
+            if idx is None:
+                idx = state['kp'].add_key(key)
+            delta_pct = 0
+            if alert.level != 'normal':
+                # compute percentage drop then * 100 to allow storage in int
+                delta_pct = int((abs(v.history_value - v.value) / max(v.history_value, v.value)) * 100 * 100)
+            state['kp'].set(idx, delta_pct)
 
             # Track latest time of each violation's ocurrence
             state['violations_last_times'][idx] = alert.time
@@ -85,12 +100,12 @@ class TimeseriesConsumer(AbstractConsumer):
 
         self._reset_violations_level(not_updated_viols, state['kp'], alert.time)
 
-    def _build_key(self, alert, violation):
+    def _build_key(self, alert, violation, leaf):
         # "projects.ioda.alerts.[ALERT-FQID].[META-FQID].alert_level
         return '.'\
             .join((self.config['metric_prefix'], alert.fqid,
                    violation.meta[0]['fqid'],
-                   self.config['level_leaf']))
+                   leaf))
 
     def _maybe_flush_kp(self, state, time):
         this_int_start = self.compute_interval_start(time)
