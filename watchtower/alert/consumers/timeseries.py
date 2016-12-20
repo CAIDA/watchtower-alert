@@ -35,6 +35,7 @@ class TimeseriesConsumer(AbstractConsumer):
 
         self.no_alert_timeout = sum(map(self.config.get,
             ('producer_repeat_interval', 'producer_max_interval', 'interval')))
+        logging.debug("Missed alert timeout: %s" % self.no_alert_timeout)
 
     def _init_ts(self):
         logging.info("Initializing PyTimeseries")
@@ -80,6 +81,9 @@ class TimeseriesConsumer(AbstractConsumer):
             if idx is None:
                 idx = state['kp'].add_key(key)
             state['kp'].set(idx, self.level_values[alert.level])
+            # Update last modified time for this metric
+            state['violations_last_times'][key] = alert.time
+            not_updated_viols.pop(key, None)
 
             # create the delta_pct leaf
             key = self._build_key(alert, v, self.config['delta_leaf'])
@@ -92,11 +96,9 @@ class TimeseriesConsumer(AbstractConsumer):
                 # compute percentage drop then * 100 to allow storage in int
                 delta_pct = int((abs(v.history_value - v.value) / max(v.history_value, v.value)) * 100 * 100)
             state['kp'].set(idx, delta_pct)
-
-            # Track latest time of each violation's ocurrence
-            state['violations_last_times'][idx] = alert.time
-
-            not_updated_viols.pop(idx, None)
+            # Update last modified time for this metric
+            state['violations_last_times'][key] = alert.time
+            not_updated_viols.pop(key, None)
 
         self._reset_violations_level(not_updated_viols, state['kp'], alert.time)
 
@@ -139,12 +141,13 @@ class TimeseriesConsumer(AbstractConsumer):
             state['kp'].flush(state['int_start'])
 
     def _reset_violations_level(self, violations, kp, now):
-        """Reset level of a series to normal when no violation of it is recieved
+        """Reset level of a series to normal when no violation of it is received
         for too long, assuming it has came back to normal.
 
         :param dict violations:
         :param int now:
         """
-        for idx, last_time in violations.iteritems():
+        for key, last_time in violations.iteritems():
             if now - last_time >= self.no_alert_timeout:
+                idx = kp.get_key(key)
                 kp.set(idx, self.level_values['normal'])
