@@ -14,7 +14,8 @@ class TimeseriesConsumer(AbstractConsumer):
         'level_leaf': 'alert_level',
         'delta_leaf': 'delta_pct_x100',
         'producer_repeat_interval': 7200,  # 2 hours
-        'producer_max_interval': 600
+        'producer_max_interval': 600,
+        'alert_reset_timeout': 7860,
     }
 
     level_values = {
@@ -33,8 +34,7 @@ class TimeseriesConsumer(AbstractConsumer):
         self.ts = None
         self._init_ts()
 
-        self.no_alert_timeout = sum(map(self.config.get,
-            ('producer_repeat_interval', 'producer_max_interval', 'interval')))
+        self.no_alert_timeout = self.config['alert_reset_timeout']
         logging.debug("Missed alert timeout: %s" % self.no_alert_timeout)
 
     def _init_ts(self):
@@ -147,6 +147,8 @@ class TimeseriesConsumer(AbstractConsumer):
         :param dict violations:
         :param int now:
         """
+        if not self.no_alert_timeout:
+            return
         for key, last_time in violations.iteritems():
             if now - last_time >= self.no_alert_timeout:
                 idx = kp.get_key(key)
