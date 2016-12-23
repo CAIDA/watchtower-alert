@@ -10,7 +10,7 @@ logging.getLogger("requests").setLevel(logging.WARNING)
 
 class Alert:
 
-    CH_META_API = "https://charthouse.caida.org/data/meta/annotate"
+    CH_META_API = "https://charthouse.caida.org/data/meta/hierarchical/annotate"
     LEVELS = ['critical', 'warning', 'normal', 'error']
 
     def __init__(self, fqid, name, level, time, expression, history_expression,
