@@ -126,6 +126,8 @@ class DatabaseConsumer(AbstractConsumer):
                     'meta_type': mdict['meta_type'],
                     'meta_code': mdict['meta_code'],
                 })
+                # get rid of the history column
+                vdict.pop("history")
 
             # dirty hax below. should do a select first
             try:
