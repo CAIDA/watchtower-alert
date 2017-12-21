@@ -109,9 +109,9 @@ class DatabaseConsumer(AbstractConsumer):
             adict = alert.as_dict()
             vdicts = adict.pop('violations')
             for vdict in vdicts:
-                mdicts = vdict.pop('meta')
-                assert len(mdicts) <= 1, 'Violation was annotated with more than 1 metadata entity'
-                mdict = mdicts[0] if mdicts else {
+                mdict = vdict.pop('meta')
+                if mdict is None:
+                    mdict = {
                         'meta_type': None,
                         'meta_code': None,
                     }

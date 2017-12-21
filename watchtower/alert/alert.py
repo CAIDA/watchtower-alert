@@ -51,8 +51,12 @@ class Alert:
     def annotate_violations(self):
         if self.violations_annotated:
             return
-        # collect all the expressions from violations
-        expressions = [v.expression for v in self.violations]
+        # collect all the expressions from violations that don't already have
+        # a meta set
+        expressions = []
+        for v in self.violations:
+            if v.meta is None:
+                expressions.append(v.expression)
         # do a batch lookup for efficiency
         resp = requests.post(self.CH_META_API, {'expression[]': expressions})
         res = resp.json()
@@ -62,23 +66,23 @@ class Alert:
         # build a mapping from v.expression to metas
         metas = {}
         for expression in expressions:
-            metas[expression] = []
             if expression not in res['data']:
                 continue
             for ann in res['data'][expression]['annotations']:
                 if ann['type'] != 'meta':
                     continue
                 if ann['attributes']['type'] == 'geo':
-                    metas[expression].append(self._parse_geo_ann(ann))
+                    metas[expression] = self._parse_geo_ann(ann)
                 elif ann['attributes']['type'] == 'asn':
-                    metas[expression].append({
+                    metas[expression] = {
                         'meta_type': 'asn',
                         'fqid': ann['attributes']['fqid'],
                         'meta_code': ann['attributes']['asn']
-                    })
+                    }
         # now assign meta to each violation
         for v in self.violations:
-            v.meta = metas[v.expression]
+            if v.expression in metas:
+                v.meta = metas[v.expression]
         self.violations_annotated = True
 
     @staticmethod

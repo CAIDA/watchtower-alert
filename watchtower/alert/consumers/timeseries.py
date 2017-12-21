@@ -69,10 +69,8 @@ class TimeseriesConsumer(AbstractConsumer):
         alert.annotate_violations()
         not_updated_viols = dict(state['violations_last_times'])
         for v in alert.violations:
-            if not len(v.meta):
+            if v.meta is None:
                 continue
-            if len(v.meta) > 1:
-                raise NotImplementedError('Multi-meta violations not supported')
 
             # create the alert_level metric
             key = self._build_key(alert, v, self.config['level_leaf'])
@@ -106,7 +104,7 @@ class TimeseriesConsumer(AbstractConsumer):
         # "projects.ioda.alerts.[ALERT-FQID].[META-FQID].alert_level
         return '.'\
             .join((self.config['metric_prefix'], alert.fqid,
-                   violation.meta[0]['fqid'],
+                   violation.meta['fqid'],
                    leaf))
 
     def _maybe_flush_kp(self, state, time):
