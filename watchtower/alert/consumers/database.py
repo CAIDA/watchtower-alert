@@ -54,7 +54,6 @@ class DatabaseConsumer(AbstractConsumer):
             sqlalchemy.Column('condition', sqlalchemy.String),
             sqlalchemy.Column('value', sqlalchemy.Float),
             sqlalchemy.Column('history_value', sqlalchemy.Float),
-            sqlalchemy.Column('history', sqlalchemy.Text),
 
             # Metadata columns, which some violations do not have
             sqlalchemy.Column('meta_type', sqlalchemy.String),
@@ -124,7 +123,6 @@ class DatabaseConsumer(AbstractConsumer):
                     'query_expression': adict['expression'],
                     'history_query_expression': adict['history_expression'],
                     'method': adict['method'],
-                    'history': str(vdict['history']),
                     'meta_type': mdict['meta_type'],
                     'meta_code': mdict['meta_code'],
                 })
