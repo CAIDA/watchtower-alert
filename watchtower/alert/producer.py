@@ -1,4 +1,4 @@
-import pykafka
+import confluent_kafka
 
 
 class Producer:
@@ -10,19 +10,19 @@ class Producer:
                  error_topic='errors'):
         self.topic_prefix = topic_prefix
 
-        # connect to kafka
-        self.kc = pykafka.KafkaClient(hosts=brokers)
-        # create topic handles
-        self.alert_t = self._connect_topic(alert_topic)
-        self.error_t = self._connect_topic(error_topic)
+        self.alert_topic = self._build_topic(alert_topic)
+        self.error_topic = self._build_topic(error_topic)
 
-    def _connect_topic(self, topic_name):
-        full_name = "%s-%s" % (self.topic_prefix, topic_name)
-        return self.kc.topics[full_name.encode("ascii")]\
-            .get_producer(use_rdkafka=True)
+        # connect to kafka
+        self.kc = confluent_kafka.Producer({
+            'bootstrap.servers': brokers
+        })
+
+    def _build_topic(self, topic_name):
+        return "%s-%s" % (self.topic_prefix, topic_name)
 
     def produce_alert(self, alert):
-        self.alert_t.produce(repr(alert))
+        self.kc.produce(self.alert_topic, repr(alert))
 
     def produce_error(self, error):
-        self.error_t.produce(repr(error))
+        self.kc.produce(self.error_topic, repr(error))
