@@ -2,7 +2,7 @@ import argparse
 import json
 import logging
 import os
-import pykafka
+import confluent_kafka
 import time
 
 import watchtower.alert  # Alert, Error, Violation
@@ -44,16 +44,22 @@ class Consumer:
         self._init_consumers()
 
         # connect to kafka
-        self.kc = pykafka.KafkaClient(hosts=self.config['brokers'])
-        # set up our consumers
-        self.alert_consumer =\
-            self._topic(self.config['alert_topic'])\
-                .get_simple_consumer(consumer_timeout_ms=1000,
-                                     use_rdkafka=True)
-        self.error_consumer =\
-            self._topic(self.config['error_topic'])\
-                .get_simple_consumer(consumer_timeout_ms=1000,
-                                     use_rdkafka=True)
+        kafka_conf = {
+            'bootstrap.servers': self.config['brokers'],
+            'group.id': self.config['consumer_group'],
+            'default.topic.config': {'auto.offset.reset': 'latest'},
+            'heartbeat.interval.ms': 60000,
+            'api.version.request': True,
+        }
+        self.kc = confluent_kafka.Consumer(**kafka_conf)
+        self.kc.subscribe([
+            self.config['alert_topic'],
+            self.config['error_topic']
+        ])
+        self.msg_handlers = {
+            self.config['alert_topic']: self._handle_alert,
+            self.config['error_topic']: self._handle_error,
+        }
 
     def _init_plugins(self):
         consumers = {
@@ -92,13 +98,23 @@ class Consumer:
             for consumer in cfg:
                 self.consumers[level].append(self.consumer_instances[consumer])
 
-    def _handle_alert(self, alert):
+    def _handle_alert(self, msg):
+        try:
+            alert = watchtower.alert.Alert.from_json(msg.value)
+        except ValueError:
+            logging.error("Could not extract Alert from json: %s" % msg.value)
+            return
         for consumer in self.consumers[alert.level]:
             consumer.handle_alert(alert)
 
-    def _handle_error(self, alert):
+    def _handle_error(self, msg):
+        try:
+            error = watchtower.alert.Error.from_json(msg.value)
+        except ValueError:
+            logging.error("Could not extract Error from json: %s" % msg.value)
+            return
         for consumer in self.consumers['error']:
-            consumer.handle_error(alert)
+            consumer.handle_error(error)
 
     def _handle_timer(self, now):
         for consumer in self.consumers['timer']:
@@ -117,27 +133,22 @@ class Consumer:
                     interval = self.config['timer_interval']
                     self.next_timer = (int(now/interval) * interval) + interval
 
-            # ALERTS
-            for msg in self.alert_consumer:
-                if msg is not None:
-                    try:
-                        alert = watchtower.alert.Alert.from_json(msg.value)
-                    except ValueError:
-                        logging.error("Could not extract Alert from json: %s" % msg.value)
-                        alert = None
-                    if alert:
-                        self._handle_alert(alert)
-
-            # ERRORS
-            for msg in self.error_consumer:
-                if msg is not None:
-                    try:
-                        error = watchtower.alert.Error.from_json(msg.value)
-                    except ValueError:
-                        logging.error("Could not extract Error from json: %s" % msg.value)
-                        error = None
-                    if error:
-                        self._handle_error(error)
+            # ALERTS and ERRORS
+            msg = self.kc.poll(1000)
+            eof_since_data = 0
+            while msg is not None:
+                if not msg.error():
+                    self.msg_handlers[msg.topic](msg)
+                    eof_since_data = 0
+                elif msg.error().code() == \
+                        confluent_kafka.KafkaError._PARTITION_EOF:
+                    # no new messages, wait a bit and then drop out and check timers
+                    eof_since_data += 1
+                    if eof_since_data >= 10:
+                        break
+                else:
+                    logging.error("Unhandled Kafka error: %s" % msg.error())
+                msg = self.kc.poll(1000)
 
 
 def main():
