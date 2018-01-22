@@ -124,7 +124,7 @@ class DatabaseConsumer(AbstractConsumer):
                     'history_query_expression': adict['history_expression'],
                     'method': adict['method'],
                     'meta_type': mdict['meta_type'],
-                    'meta_code': mdict['meta_code'],
+                    'meta_code': mdict['meta_code'] if "meta_code" in mdict else None
                 })
                 # get rid of the history column
                 vdict.pop("history")
