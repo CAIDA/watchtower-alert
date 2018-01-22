@@ -47,18 +47,18 @@ class Consumer:
         kafka_conf = {
             'bootstrap.servers': self.config['brokers'],
             'group.id': self.config['consumer_group'],
-            'default.topic.config': {'auto.offset.reset': 'latest'},
+            'default.topic.config': {'auto.offset.reset': 'earliest'},
             'heartbeat.interval.ms': 60000,
             'api.version.request': True,
         }
         self.kc = confluent_kafka.Consumer(**kafka_conf)
         self.kc.subscribe([
-            self.config['alert_topic'],
-            self.config['error_topic']
+            self._topic("alert"),
+            self._topic("error")
         ])
         self.msg_handlers = {
-            self.config['alert_topic']: self._handle_alert,
-            self.config['error_topic']: self._handle_error,
+            self._topic("alert"): self._handle_alert,
+            self._topic("error"): self._handle_error,
         }
 
     def _init_plugins(self):
@@ -79,16 +79,16 @@ class Consumer:
         with open(self.config_file) as fconfig:
             self.config.update(json.loads(fconfig.read()))
         self._configure_logging()
-        logging.debug(self.config)
+        # logging.debug(self.config)
 
     def _configure_logging(self):
         logging.basicConfig(level=self.config.get('logging', 'info'),
                             format='%(asctime)s|WATCHTOWER|%(levelname)s: %(message)s',
                             datefmt='%Y-%m-%d %H:%M:%S')
 
-    def _topic(self, name):
-        name = "%s-%s" % (self.config['topic_prefix'], name)
-        return self.kc.topics[name.encode("ascii")]
+    def _topic(self, topic):
+        name = "%s-%s" % (self.config['topic_prefix'], self.config["%s_topic" % topic])
+        return name.encode("ascii")
 
     def _init_consumers(self):
         self.consumers = {}
@@ -100,18 +100,18 @@ class Consumer:
 
     def _handle_alert(self, msg):
         try:
-            alert = watchtower.alert.Alert.from_json(msg.value)
+            alert = watchtower.alert.Alert.from_json(msg.value())
         except ValueError:
-            logging.error("Could not extract Alert from json: %s" % msg.value)
+            logging.error("Could not extract Alert from json: %s" % msg.value())
             return
         for consumer in self.consumers[alert.level]:
             consumer.handle_alert(alert)
 
     def _handle_error(self, msg):
         try:
-            error = watchtower.alert.Error.from_json(msg.value)
+            error = watchtower.alert.Error.from_json(msg.value())
         except ValueError:
-            logging.error("Could not extract Error from json: %s" % msg.value)
+            logging.error("Could not extract Error from json: %s" % msg.value())
             return
         for consumer in self.consumers['error']:
             consumer.handle_error(error)
@@ -134,21 +134,21 @@ class Consumer:
                     self.next_timer = (int(now/interval) * interval) + interval
 
             # ALERTS and ERRORS
-            msg = self.kc.poll(1000)
+            msg = self.kc.poll(10)
             eof_since_data = 0
             while msg is not None:
                 if not msg.error():
-                    self.msg_handlers[msg.topic](msg)
+                    self.msg_handlers[msg.topic()](msg)
                     eof_since_data = 0
                 elif msg.error().code() == \
                         confluent_kafka.KafkaError._PARTITION_EOF:
                     # no new messages, wait a bit and then drop out and check timers
                     eof_since_data += 1
-                    if eof_since_data >= 10:
+                    if eof_since_data >= 6:
                         break
                 else:
                     logging.error("Unhandled Kafka error: %s" % msg.error())
-                msg = self.kc.poll(1000)
+                msg = self.kc.poll(10)
 
 
 def main():
