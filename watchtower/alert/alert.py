@@ -57,6 +57,10 @@ class Alert:
         for v in self.violations:
             if v.meta is None:
                 expressions.append(v.expression)
+        if not len(expressions):
+            # nothing to do...
+            self.violations_annotated = True
+            return
         # do a batch lookup for efficiency
         resp = requests.post(self.CH_META_API, {'expression[]': expressions})
         res = resp.json()
