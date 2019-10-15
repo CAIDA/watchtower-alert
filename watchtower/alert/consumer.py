@@ -93,7 +93,7 @@ class Consumer:
             logging.error("Could not extract Alert from json: %s" % msg.value())
             logging.exception(e)
             return
-        for consumer in self.consumers[alert.level]:
+        for consumer in self.consumers['alert']:
             consumer.handle_alert(alert)
 
     def _handle_timer(self, now):
