@@ -30,7 +30,6 @@ class Consumer:
         self.config_file = os.path.expanduser(config_file)
         self.config = dict(self.defaults)
         self._load_config()
-
         self.topic = self.config['topic'].encode("ascii")
 
         self.next_timer = None
@@ -50,6 +49,7 @@ class Consumer:
             'api.version.request': True,
         }
         self.kc = confluent_kafka.Consumer(**kafka_conf)
+        logging.info("Subscribing to alerts from '%s'" % self.topic)
         self.kc.subscribe([self.topic])
 
     def _init_plugins(self):
