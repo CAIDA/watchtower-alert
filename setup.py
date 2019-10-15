@@ -1,6 +1,3 @@
-#!/usr/bin/env python
-#
-
 from setuptools import setup, find_packages
 from os import path as op
 
@@ -17,14 +14,15 @@ install_requires = [
 
 setup(name='watchtower.alert',
       version='0.1',
-      description='Alert consumer component of the Watchtower framework',
+      description=_read('DESCRIPTION'),
       url='https://github.com/CAIDA/watchtower-alert',
       author='Alistair King',
       author_email='alistair@caida.org',
-      license='BSD',
+      license='UCSD-Non-Commerical-Academic',
       packages=find_packages(),
+      include_package_data=True,
       entry_points={'console_scripts': [
           'watchtower-alert=watchtower.alert.consumer:main'
       ]},
       install_requires=install_requires
-)
+      )
