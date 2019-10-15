@@ -24,7 +24,7 @@ setup(name='watchtower.alert',
       license='BSD',
       packages=find_packages(),
       entry_points={'console_scripts': [
-          'watchtower-alert-consumer=watchtower.alert.consumer:main'
+          'watchtower-alert=watchtower.alert.consumer:main'
       ]},
       install_requires=install_requires
 )
