@@ -89,7 +89,7 @@ class Consumer:
     def _handle_alert(self, msg):
         try:
             alert = Alert.from_json(msg.value())
-        except ValueError as e:
+        except (TypeError, ValueError) as e:
             logging.error("Could not extract Alert from json: %s" % msg.value())
             logging.exception(e)
             return
