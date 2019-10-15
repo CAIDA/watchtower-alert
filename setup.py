@@ -2,6 +2,18 @@
 #
 
 from setuptools import setup, find_packages
+from os import path as op
+
+
+def _read(fname):
+    try:
+        return open(op.join(op.dirname(__file__), fname)).read()
+    except IOError:
+        return ''
+
+
+install_requires = [
+    l for l in _read('requirements.txt').split('\n') if l and not l.startswith('#')]
 
 setup(name='watchtower.alert',
       version='0.1',
@@ -14,5 +26,5 @@ setup(name='watchtower.alert',
       entry_points={'console_scripts': [
           'watchtower-alert-consumer=watchtower.alert.consumer:main'
       ]},
-      install_requires=['confluent-kafka', 'sqlalchemy', 'psycopg2',
-                        'requests', 'pytimeseries'])
+      install_requires=install_requires
+)

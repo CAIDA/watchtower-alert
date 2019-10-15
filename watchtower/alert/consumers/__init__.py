@@ -22,8 +22,9 @@ class AbstractConsumer:
 # When adding a consumer here, also add to _init_plugins method in
 # watchtower.alert.consumer.py
 # TODO: make adding consumer more dynamic
-from watchtower.alert.consumers.log import LogConsumer
+from .log import LogConsumer
 # from watchtower.alert.consumers.email import EmailConsumer
-from watchtower.alert.consumers.database import DatabaseConsumer
+from .database import DatabaseConsumer
 # from watchtower.alert.consumers.traceroute import TracerouteConsumer
-from watchtower.alert.consumers.timeseries import TimeseriesConsumer
+from .timeseries import TimeseriesConsumer
+from .slack import SlackConsumer

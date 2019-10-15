@@ -2,7 +2,7 @@ import logging
 import sqlalchemy
 import sqlalchemy.engine.url
 
-from watchtower.alert.consumers import AbstractConsumer
+from . import AbstractConsumer
 
 
 class DatabaseConsumer(AbstractConsumer):

@@ -1,7 +1,7 @@
 import logging
 import _pytimeseries
 
-from watchtower.alert.consumers import AbstractConsumer
+from . import AbstractConsumer
 
 
 class TimeseriesConsumer(AbstractConsumer):

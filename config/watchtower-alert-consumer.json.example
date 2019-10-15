@@ -1,22 +1,14 @@
 {
   "logging": "DEBUG",
 
-  "critical_consumers": ["log", "email", "database"],
-  "warning_consumers": ["log", "email", "database"],
-  "normal_consumers": ["log", "database"],
-  "error_consumers": ["log", "email", "datagase"],
+  "alert_consumers": ["log", "email", "database"],
+  "timer_consumers": ["log"],
 
   "brokers": "localhost:9092",
   "consumer_group": "watchtower-alert",
-  "topic_prefix": "watchtower",
+  "topic": "watchtower",
 
   "consumers": {
-    "smtp": {
-      "use_tls": false,
-      "host": "localhost",
-      "from": "watchtower-alerts@localhost",
-      "to": []
-    },
     "database": {
       "drivername": "postgresql",
       "host": "localhost",

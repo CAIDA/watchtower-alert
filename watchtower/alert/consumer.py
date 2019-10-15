@@ -5,8 +5,8 @@ import os
 import confluent_kafka
 import time
 
-import watchtower.alert  # Alert, Error, Violation
-import watchtower.alert.consumers
+from .alert import Alert
+from .consumers import *
 
 
 class Consumer:
@@ -14,26 +14,22 @@ class Consumer:
     defaults = {
         "logging": "INFO",
 
-        "critical_consumers": ["log"],
-        "warning_consumers": ["log"],
-        "normal_consumers": ["log"],
-        "error_consumers": ["log"],
+        "alert_consumers": ["log"],
         "timer_consumers": ["log"],
+        "consumer_cfgs": {},
 
         "brokers": "localhost:9092",
-        "topic_prefix": "watchtower",
-        "alert_topic": "alerts",
-        "error_topic": "errors",
+        "topic": "watchtower",
 
         "timer_interval": 60,
-
-        "consumers": {},
     }
 
     def __init__(self, config_file):
         self.config_file = os.path.expanduser(config_file)
         self.config = dict(self.defaults)
         self._load_config()
+
+        self.topic = self.config['topic'].encode("ascii")
 
         self.next_timer = None
 
@@ -52,22 +48,15 @@ class Consumer:
             'api.version.request': True,
         }
         self.kc = confluent_kafka.Consumer(**kafka_conf)
-        self.kc.subscribe([
-            self._topic("alert"),
-            self._topic("error")
-        ])
-        self.msg_handlers = {
-            self._topic("alert"): self._handle_alert,
-            self._topic("error"): self._handle_error,
-        }
+        self.kc.subscribe([self.topic])
 
     def _init_plugins(self):
         consumers = {
-            "log": watchtower.alert.consumers.LogConsumer,
-            # "email": watchtower.alert.consumers.EmailConsumer,
-            "database": watchtower.alert.consumers.DatabaseConsumer,
+            "log": LogConsumer,
+            "database": DatabaseConsumer,
             # "traceroute": watchtower.alert.consumers.TracerouteConsumer,
-            "timeseries": watchtower.alert.consumers.TimeseriesConsumer,
+            "timeseries": TimeseriesConsumer,
+            "slack": SlackConsumer,
         }
         self.consumer_instances = {}
         for consumer, clz in consumers.iteritems():
@@ -86,13 +75,9 @@ class Consumer:
                             format='%(asctime)s|WATCHTOWER|%(levelname)s: %(message)s',
                             datefmt='%Y-%m-%d %H:%M:%S')
 
-    def _topic(self, topic):
-        name = "%s-%s" % (self.config['topic_prefix'], self.config["%s_topic" % topic])
-        return name.encode("ascii")
-
     def _init_consumers(self):
         self.consumers = {}
-        for level in watchtower.alert.Alert.LEVELS + ['timer']:
+        for level in Alert.LEVELS + ['timer']:
             cfg = self.config[level+'_consumers']
             self.consumers[level] = []
             for consumer in cfg:
@@ -100,21 +85,12 @@ class Consumer:
 
     def _handle_alert(self, msg):
         try:
-            alert = watchtower.alert.Alert.from_json(msg.value())
+            alert = Alert.from_json(msg.value())
         except ValueError:
             logging.error("Could not extract Alert from json: %s" % msg.value())
             return
         for consumer in self.consumers[alert.level]:
             consumer.handle_alert(alert)
-
-    def _handle_error(self, msg):
-        try:
-            error = watchtower.alert.Error.from_json(msg.value())
-        except ValueError:
-            logging.error("Could not extract Error from json: %s" % msg.value())
-            return
-        for consumer in self.consumers['error']:
-            consumer.handle_error(error)
 
     def _handle_timer(self, now):
         for consumer in self.consumers['timer']:
@@ -133,12 +109,12 @@ class Consumer:
                     interval = self.config['timer_interval']
                     self.next_timer = (int(now/interval) * interval) + interval
 
-            # ALERTS and ERRORS
+            # ALERTS
             msg = self.kc.poll(10)
             eof_since_data = 0
             while msg is not None:
                 if not msg.error():
-                    self.msg_handlers[msg.topic()](msg)
+                    self._handle_alert(msg)
                     eof_since_data = 0
                 elif msg.error().code() == \
                         confluent_kafka.KafkaError._PARTITION_EOF:
