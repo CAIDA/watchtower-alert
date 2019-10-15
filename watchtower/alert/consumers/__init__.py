@@ -5,6 +5,9 @@ class AbstractConsumer(metaclass=abc.ABCMeta):
     def __init__(self, config):
         self.config = config
 
+    def start(self):
+        pass
+
     @abc.abstractmethod
     def handle_alert(self, alert):
         pass

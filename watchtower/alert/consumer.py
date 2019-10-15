@@ -62,8 +62,7 @@ class Consumer:
         }
         self.consumer_instances = {}
         for consumer, clz in list(consumers.items()):
-            cfg = self.config['consumers'][consumer] \
-                if consumer in self.config['consumers'] else None
+            cfg = self.config['consumers'].get(consumer, None)
             self.consumer_instances[consumer] = clz(cfg)
 
     def _load_config(self):
@@ -79,11 +78,13 @@ class Consumer:
 
     def _init_consumers(self):
         self.consumers = {}
-        for level in Alert.LEVELS + ['timer']:
-            cfg = self.config[level+'_consumers']
-            self.consumers[level] = []
-            for consumer in cfg:
-                self.consumers[level].append(self.consumer_instances[consumer])
+        for alert_type in ['alert', 'timer']:
+            cfg = self.config[alert_type + '_consumers']
+            self.consumers[alert_type] = []
+            for cons_name in cfg:
+                cons_inst = self.consumer_instances[cons_name]
+                cons_inst.start()
+                self.consumers[alert_type].append(cons_inst)
 
     def _handle_alert(self, msg):
         try:

@@ -25,6 +25,7 @@ class DatabaseConsumer(AbstractConsumer):
         if config:
             self.config.update(config)
 
+    def start(self):
         self._init_db()
 
     def _init_db(self):
