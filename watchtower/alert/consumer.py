@@ -22,6 +22,8 @@ class Consumer:
         "topic": "watchtower",
 
         "timer_interval": 60,
+
+        "consumers": {}
     }
 
     def __init__(self, config_file):
