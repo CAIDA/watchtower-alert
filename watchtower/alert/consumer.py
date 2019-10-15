@@ -30,7 +30,7 @@ class Consumer:
         self.config_file = os.path.expanduser(config_file)
         self.config = dict(self.defaults)
         self._load_config()
-        self.topic = self.config['topic'].encode("ascii")
+        self.topic = self.config['topic']
 
         self.next_timer = None
 
@@ -89,8 +89,9 @@ class Consumer:
     def _handle_alert(self, msg):
         try:
             alert = Alert.from_json(msg.value())
-        except ValueError:
+        except ValueError as e:
             logging.error("Could not extract Alert from json: %s" % msg.value())
+            logging.exception(e)
             return
         for consumer in self.consumers[alert.level]:
             consumer.handle_alert(alert)
