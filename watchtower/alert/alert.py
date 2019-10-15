@@ -241,7 +241,7 @@ class Violation:
 
     @history.setter
     def history(self, v):
-        if list is not None and not isinstance(v, list):
+        if v is not None and not isinstance(v, list):
             raise TypeError('Violation history must be a list')
         self._history = v
 
