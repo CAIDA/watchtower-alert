@@ -28,13 +28,13 @@ class TimeseriesConsumer(AbstractConsumer):
         super(TimeseriesConsumer, self).__init__(self.defaults)
         if config:
             self.config.update(config)
-
-        # [alert.name] => 'int_start', 'last_time', 'kp'
         self.alert_state = {}
         self.ts = None
-        self._init_ts()
-
         self.no_alert_timeout = self.config['alert_reset_timeout']
+
+    def start(self):
+        # [alert.name] => 'int_start', 'last_time', 'kp'
+        self._init_ts()
         logging.debug("Missed alert timeout: %s" % self.no_alert_timeout)
 
     def _init_ts(self):
