@@ -132,7 +132,7 @@ class TimeseriesConsumer(AbstractConsumer):
     def handle_timer(self, now):
         logging.debug("Flushing all KPs...")
         # flush the kps
-        for name, state in self.alert_state.iteritems():
+        for name, state in self.alert_state.items():
             logging.debug("Flushing KP for %s" % name)
 
             self._reset_violations_level(state['violations_last_times'], state['kp'], now)
@@ -147,7 +147,7 @@ class TimeseriesConsumer(AbstractConsumer):
         """
         if not self.no_alert_timeout:
             return
-        for key, last_time in violations.iteritems():
+        for key, last_time in violations.items():
             if now - last_time >= self.no_alert_timeout:
                 idx = kp.get_key(key)
                 kp.set(idx, self.level_values['normal'])

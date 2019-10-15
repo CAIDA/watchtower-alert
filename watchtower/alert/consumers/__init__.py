@@ -1,9 +1,7 @@
 import abc
 
 
-class AbstractConsumer:
-    __metaclass__ = abc.ABCMeta
-
+class AbstractConsumer(metaclass=abc.ABCMeta):
     def __init__(self, config):
         self.config = config
 

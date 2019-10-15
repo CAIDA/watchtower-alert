@@ -59,7 +59,7 @@ class Consumer:
             "slack": SlackConsumer,
         }
         self.consumer_instances = {}
-        for consumer, clz in consumers.iteritems():
+        for consumer, clz in list(consumers.items()):
             cfg = self.config['consumers'][consumer] \
                 if consumer in self.config['consumers'] else None
             self.consumer_instances[consumer] = clz(cfg)
