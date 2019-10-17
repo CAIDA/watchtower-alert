@@ -77,9 +77,6 @@ class SlackConsumer(AbstractConsumer):
                 ]
             },
             {
-                "type": "divider"
-            },
-            {
                 "type": "section",
                 "fields": [
                     {
@@ -104,7 +101,10 @@ class SlackConsumer(AbstractConsumer):
                         "text": "%s" % alert_time
                     }
                 ]
-            }
+            },
+            {
+                "type": "divider"
+            },  # divider
         ]
 
     def handle_alert(self, alert):
