@@ -1,12 +1,12 @@
 import json
 import requests
+from simplejson.errors import JSONDecodeError
 
 # Shut requests up
 import warnings
 warnings.filterwarnings('once', r'.*InsecurePlatformWarning.*')
 import logging
 logging.getLogger("requests").setLevel(logging.WARNING)
-
 
 class Alert:
 
@@ -63,7 +63,10 @@ class Alert:
             return
         # do a batch lookup for efficiency
         resp = requests.post(self.CH_META_API, {'expression[]': expressions})
-        res = resp.json()
+        try:
+            res = resp.json()
+        except JSONDecodeError as e:
+            raise RuntimeError('Charthouse annotation failed with JSON decode error: %s' % e.msg)
         if not res or 'data' not in res or not res['data']:
             raise RuntimeError('Charthouse annotation failed with error: %s' %
                                res['error'] if res else None)
