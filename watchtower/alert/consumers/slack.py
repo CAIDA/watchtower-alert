@@ -36,6 +36,8 @@ class SlackConsumer(AbstractConsumer):
     def _build_msg_blocks(self, name, meta_type, meta_code,
                           from_time, until_time, position,
                           actual, predicted, pct_drop, alert_time):
+        predicted_str = "%d" % predicted if predicted is not None else "Unknown"
+        pct_drop_str = "%.2f" % pct_drop if pct_drop is not None else "Unknown"
         return [
             {
                 "type": "section",
@@ -78,11 +80,11 @@ class SlackConsumer(AbstractConsumer):
                     },
                     {
                         "type": "mrkdwn",
-                        "text": "*Predicted Value:* %s" % predicted
+                        "text": "*Predicted Value:* %s" % predicted_str
                     },
                     {
                         "type": "mrkdwn",
-                        "text": "*Relative Drop:* %.2f%%" % pct_drop
+                        "text": "*Relative Drop:* %s%%" % pct_drop_str
                     }
                 ]
             },
