@@ -23,9 +23,17 @@ class SlackConsumer(AbstractConsumer):
         self.client = slack.WebClient(token=self.config['api_token'])
 
     def _post(self, msg_blocks):
-        self.client.chat_postMessage(
-            channel=self.channel,
-            blocks=msg_blocks)
+        retries = 5
+        while retries < 0:
+            try:
+                self.client.chat_postMessage(
+                    channel=self.channel,
+                    blocks=msg_blocks)
+            except slack.error.SlackApiError as e:
+                if e.response['error'] == 'ratelimited':
+                    retries -= 1
+                    continue
+                raise e
 
     @staticmethod
     def _build_dashboard_url(meta_type, meta_code, from_time, until_time):
@@ -37,7 +45,7 @@ class SlackConsumer(AbstractConsumer):
                           from_time, until_time, position,
                           actual, predicted, pct_drop, alert_time):
         predicted_str = "%d" % predicted if predicted is not None else "Unknown"
-        pct_drop_str = "%.2f" % pct_drop if pct_drop is not None else "Unknown"
+        pct_drop_str = "%.2f%%" % pct_drop if pct_drop is not None else "Unknown"
         return [
             {
                 "type": "section",
@@ -84,7 +92,7 @@ class SlackConsumer(AbstractConsumer):
                     },
                     {
                         "type": "mrkdwn",
-                        "text": "*Relative Drop:* %s%%" % pct_drop_str
+                        "text": "*Relative Drop:* %s" % pct_drop_str
                     }
                 ]
             },
