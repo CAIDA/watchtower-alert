@@ -1,5 +1,6 @@
 import logging
 import slack
+from slack.errors import SlackApiError
 import time
 
 from . import AbstractConsumer
@@ -24,16 +25,20 @@ class SlackConsumer(AbstractConsumer):
 
     def _post(self, msg_blocks):
         retries = 5
-        while retries < 0:
+        while retries > 0:
             try:
                 self.client.chat_postMessage(
                     channel=self.channel,
                     blocks=msg_blocks)
-            except slack.error.SlackApiError as e:
+            except SlackApiError as e:
                 if e.response['error'] == 'ratelimited':
                     retries -= 1
+                    if retries == 0:
+                        raise e
+                    time.sleep(30)
                     continue
                 raise e
+            return
 
     @staticmethod
     def _build_dashboard_url(meta_type, meta_code, from_time, until_time):
