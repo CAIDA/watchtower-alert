@@ -1,6 +1,5 @@
 import json
 import requests
-from simplejson.errors import JSONDecodeError
 
 # Shut requests up
 import warnings
@@ -65,7 +64,7 @@ class Alert:
         resp = requests.post(self.CH_META_API, {'expression[]': expressions})
         try:
             res = resp.json()
-        except JSONDecodeError as e:
+        except Exception as e:
             raise RuntimeError('Charthouse annotation failed with JSON decode error: %s' % e.msg)
         if not res or 'data' not in res or not res['data']:
             raise RuntimeError('Charthouse annotation failed with error: %s' %
