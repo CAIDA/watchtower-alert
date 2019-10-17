@@ -35,6 +35,7 @@ class SlackConsumer(AbstractConsumer):
                     retries -= 1
                     if retries == 0:
                         raise e
+                    logging.warning("Hit slack rate limit. Waiting 30s.")
                     time.sleep(30)
                     continue
                 raise e
