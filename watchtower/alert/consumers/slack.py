@@ -78,7 +78,7 @@ class SlackConsumer(AbstractConsumer):
                     },
                     {
                         "type": "mrkdwn",
-                        "text": "*Predicted Value:* %d" % predicted
+                        "text": "*Predicted Value:* %s" % predicted
                     },
                     {
                         "type": "mrkdwn",
