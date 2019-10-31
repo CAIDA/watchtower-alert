@@ -8,6 +8,12 @@ import time
 from .alert import Alert
 from .consumers import *
 
+# list of kafka "errors" that are not really errors
+KAFKA_IGNORED_ERRS = [
+    confluent_kafka.KafkaError._PARTITION_EOF,
+    confluent_kafka.KafkaError._TIMED_OUT,
+]
+
 
 class Consumer:
 
@@ -116,21 +122,15 @@ class Consumer:
 
             # ALERTS
             msg = self.kc.poll(10)
-            eof_since_data = 0
-            while msg is not None:
-                if not msg.error():
-                    self._handle_alert(msg)
-                    msg = None
-                    eof_since_data = 0
-                elif msg.error().code() == \
-                        confluent_kafka.KafkaError._PARTITION_EOF:
-                    # no new messages, wait a bit and then drop out and check timers
-                    eof_since_data += 1
-                    if eof_since_data >= 6:
-                        break
-                else:
-                    logging.error("Unhandled Kafka error: %s" % msg.error())
-                msg = self.kc.poll(10)
+            if msg is None:
+                continue
+            if not msg.error():
+                self._handle_alert(msg)
+            elif msg.error().code() in KAFKA_IGNORED_ERRS:
+                logging.debug("Ignoring benign kafka 'error': %s" % msg.error().code())
+            else:
+                logging.error("Unhandled Kafka error: %s" % msg.error())
+                break
 
 
 def main():
