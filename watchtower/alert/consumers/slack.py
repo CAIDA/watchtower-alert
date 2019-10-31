@@ -131,6 +131,7 @@ class SlackConsumer(AbstractConsumer):
         self._post(msg_blocks, msg_text)
 
     def handle_alert(self, alert):
+        logging.info("Slack handling alert: '%s'" % alert.fqid)
         alert.annotate_violations()
         for viol in alert.violations:
             rel_drop = None

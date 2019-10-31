@@ -87,6 +87,7 @@ class Consumer:
                 self.consumers[alert_type].append(cons_inst)
 
     def _handle_alert(self, msg):
+        logging.info("Handling alert: '%s'" % msg.value())
         try:
             alert = Alert.from_json(msg.value())
         except (TypeError, ValueError) as e:
@@ -119,6 +120,7 @@ class Consumer:
             while msg is not None:
                 if not msg.error():
                     self._handle_alert(msg)
+                    msg = None
                     eof_since_data = 0
                 elif msg.error().code() == \
                         confluent_kafka.KafkaError._PARTITION_EOF:
