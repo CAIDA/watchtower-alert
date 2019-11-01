@@ -96,6 +96,8 @@ class Alert:
     @staticmethod
     def _parse_geo_ann(ann):
         type = ann['attributes']['nativeLevel']
+        if type is None:
+            return None
         return {
             'meta_type': type,
             'fqid': ann['attributes']['fqid'],
