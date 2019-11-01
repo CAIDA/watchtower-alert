@@ -72,7 +72,9 @@ class Alert:
         # build a mapping from v.expression to metas
         metas = {}
         for expression in expressions:
-            if expression not in res['data']:
+            if expression not in res['data'] or res['data'][expression] is None \
+                    or 'annotations' not in res['data'][expression] \
+                    or res['data'][expression]['annotations'] is None:
                 continue
             for ann in res['data'][expression]['annotations']:
                 if ann['type'] != 'meta':
