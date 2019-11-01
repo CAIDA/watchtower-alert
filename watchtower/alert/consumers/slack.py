@@ -134,6 +134,8 @@ class SlackConsumer(AbstractConsumer):
         logging.info("Slack handling alert: '%s'" % alert.fqid)
         alert.annotate_violations()
         for viol in alert.violations:
+            if viol.meta is None:
+                continue
             # per-AS alerts are too noisy
             if 'meta_type' in viol.meta and viol.meta['meta_type'] == 'asn':
                 continue
