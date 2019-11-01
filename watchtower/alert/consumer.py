@@ -50,7 +50,7 @@ class Consumer:
         kafka_conf = {
             'bootstrap.servers': self.config['brokers'],
             'group.id': self.config['consumer_group'],
-            'default.topic.config': {'auto.offset.reset': 'earliest'},
+            'default.topic.config': {'auto.offset.reset': 'latest'},
             'heartbeat.interval.ms': 60000,
             'api.version.request': True,
         }
