@@ -134,6 +134,10 @@ class SlackConsumer(AbstractConsumer):
         logging.info("Slack handling alert: '%s'" % alert.fqid)
         alert.annotate_violations()
         for viol in alert.violations:
+            # per-AS alerts are too noisy
+            if 'meta_type' in viol.meta and viol.meta['meta_type'] == 'asn':
+                continue
+
             rel_drop = None
             if viol.history_value is not None and viol.value is not None:
                 rel_drop = (viol.history_value - viol.value) / viol.history_value * 100
