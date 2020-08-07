@@ -105,7 +105,7 @@ class TimeseriesConsumer(AbstractConsumer):
         return '.'\
             .join((self.config['metric_prefix'], alert.fqid,
                    violation.meta['fqid'],
-                   leaf))
+                   leaf)).encode()
 
     def _maybe_flush_kp(self, state, time):
         this_int_start = self.compute_interval_start(time)
