@@ -110,8 +110,9 @@ class TimeseriesConsumer(AbstractConsumer):
     def _maybe_flush_kp(self, state, time):
         this_int_start = self.compute_interval_start(time)
         if time < state['last_time']:
-            raise RuntimeError('Time is going backward! Time: %d Last Time: %d'
-                               % (time, state['last_time']))
+            logging.error('Time is going backwards! Time: %d Last Time: %d'
+                          % (time, state['last_time']))
+            return
         state['last_time'] = time
         if not state['int_start']:
             state['int_start'] = this_int_start
